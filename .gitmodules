@@ -1,0 +1,3 @@
+[submodule "packages/realsense_pkg"]
+	path = packages/realsense_pkg
+	url = git@github.com:DIT-ROBOTICS/realsense-ros.git
