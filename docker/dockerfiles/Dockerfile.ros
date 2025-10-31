@@ -29,7 +29,8 @@ ENTRYPOINT [ "/ros_entrypoint.sh" ]
 WORKDIR ${ROS_WS}
 COPY --from=builder /opt/librealsense /opt/librealsense
 COPY packages/realsense_pkg ${ROS_WS}/src
-RUN sh /build/rosdep_init.sh ${USER}
+RUN sh /build/rosdep_init.sh ${USER} \
+ && sh /build/colcon_build.sh ${USER}
 USER $USER
 VOLUME ${ROS_WS}/install
 CMD [ "/bin/bash" ]
@@ -47,7 +48,8 @@ RUN sh /build/setup_user.sh ${USER} ${USER_UID} ${USER_GID}
 ENTRYPOINT [ "/ros_entrypoint.sh" ]
 WORKDIR ${ROS_WS}
 COPY packages/aruco_pkg ${ROS_WS}/src
-RUN sh /build/rosdep_init.sh ${USER}
+RUN sh /build/rosdep_init.sh ${USER} \
+ && sh /build/colcon_build.sh ${USER}
 USER $USER
 VOLUME ${ROS_WS}/install
 CMD [ "/bin/bash" ]
