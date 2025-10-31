@@ -1,0 +1,53 @@
+ARG BASE_IMAGE=ros:humble
+ARG LIBREALSENSE_VERSION=2.55.1
+
+FROM ${BASE_IMAGE} AS base
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TERM=xterm-256color
+COPY docker/scripts/build/ /build/
+COPY docker/scripts/entrypoint/ros_entrypoint.sh /ros_entrypoint.sh
+RUN chown root:root /ros_entrypoint.sh \
+ && chmod 755 /ros_entrypoint.sh \
+ && sh /build/install_depend.sh
+
+FROM ghcr.io/dit-robotics/librealsense:${LIBREALSENSE_VERSION} AS builder
+
+FROM base AS realsense
+LABEL org.opencontainers.image.title="vision-realsense"
+LABEL org.opencontainers.image.version="${REALSENSE_ROS_VERSION}"
+LABEL org.opencontainers.image.vendor="DIT-ROBOTICS"
+LABEL org.opencontainers.image.authors="ohin.kyuu@gmail.com"
+LABEL org.opencontainers.image.source="https://github.com/DIT-ROBOTICS/Eurobot-2026-Vision"
+ARG REALSENSE_ROS_VERSION
+ARG USER
+ARG USER_UID
+ARG USER_GID
+ENV ROS_WS=/home/$USER/vision_ws
+ENV PYTHONPATH=/opt/librealsense/py:${PYTHONPATH}
+RUN sh /build/setup_user.sh ${USER} ${USER_UID} ${USER_GID}
+ENTRYPOINT [ "/ros_entrypoint.sh" ]
+WORKDIR ${ROS_WS}
+COPY --from=builder /opt/librealsense /opt/librealsense
+COPY packages/realsense_pkg ${ROS_WS}/src
+RUN sh /build/rosdep_init.sh ${USER}
+USER $USER
+VOLUME ${ROS_WS}/install
+CMD [ "/bin/bash" ]
+
+FROM base AS aruco
+LABEL org.opencontainers.image.title="vision-aruco"
+LABEL org.opencontainers.image.vendor="DIT-ROBOTICS"
+LABEL org.opencontainers.image.authors="ohin.kyuu@gmail.com"
+LABEL org.opencontainers.image.source="https://github.com/DIT-ROBOTICS/Eurobot-2026-Vision"
+ARG USER
+ARG USER_UID
+ARG USER_GID
+ENV ROS_WS=/home/${USER}/vision_ws
+RUN sh /build/setup_user.sh ${USER} ${USER_UID} ${USER_GID}
+ENTRYPOINT [ "/ros_entrypoint.sh" ]
+WORKDIR ${ROS_WS}
+COPY packages/aruco_pkg ${ROS_WS}/src
+RUN sh /build/rosdep_init.sh ${USER}
+USER $USER
+VOLUME ${ROS_WS}/install
+CMD [ "/bin/bash" ]
