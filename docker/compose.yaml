@@ -1,0 +1,24 @@
+services:
+  vision-ws:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USER_UID: ${USER_UID:-1000}
+    image: eurobot-2026-vision:latest
+    container_name: vision-ws
+    stdin_open: true
+    tty: true
+    privileged: true
+    network_mode: host
+    command: ["/bin/bash"]
+    working_dir: /home/vision/vision_ws
+    environment:
+      - DISPLAY=${DISPLAY}
+      - ROS_LOCALHOST_ONLY=0
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - ROS_WORKSPACE=/home/vision/vision_ws
+    volumes:
+      - /dev:/dev
+      - ../:/home/vision/vision_ws
