@@ -1,0 +1,50 @@
+name: Build All Images & Push to Registry
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docker/dockerfiles/**'
+      - 'Makefile'
+  pull_request:
+    paths:
+      - 'docker/dockerfiles/**'
+      - 'Makefile'
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      
+    env:
+      REGISTRY: ghcr.io
+      ORG: ${{ github.repository_owner }}
+      PLATFORMS: linux/amd64,linux/arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: QEMU (for multi-arch)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker login (GHCR)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Test PR
+        if: github.event_name == 'pull_request'
+        run: make build LOAD=1 PLATFORMS=linux/amd64
+        
+      - name: Build & Push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: make build PUSH=1
