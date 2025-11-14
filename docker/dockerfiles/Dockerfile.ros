@@ -23,11 +23,12 @@ ARG USER
 ARG USER_UID
 ARG USER_GID
 ENV ROS_WS=/home/$USER/vision_ws
-ENV PYTHONPATH=/opt/librealsense/py:${PYTHONPATH}
+ENV PYTHONPATH=/usr/local/lib:${PYTHONPATH}
 RUN sh /build/setup_user.sh ${USER} ${USER_UID} ${USER_GID}
 ENTRYPOINT [ "/ros_entrypoint.sh" ]
 WORKDIR ${ROS_WS}
-COPY --from=builder /opt/librealsense /opt/librealsense
+COPY --from=builder /opt/librealsense /usr/local/
+COPY --from=builder /usr/lib/python3/dist-packages/pyrealsense2 /usr/lib/python3/dist-packages/pyrealsense2
 COPY packages/realsense_pkg ${ROS_WS}/src
 RUN sh /build/rosdep_init.sh ${USER} \
  && sh /build/colcon_build.sh ${USER}

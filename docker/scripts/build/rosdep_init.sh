@@ -14,4 +14,9 @@ fi
 
 apt-get update
 rosdep update
-rosdep install --from-paths ${ROS_WS}/src --rosdistro humble -y --ignore-src
+rosdep install \
+    --from-paths ${ROS_WS}/src \
+    --rosdistro humble -y \
+    --ignore-src \
+    --skip-keys="librealsense2 librealsense2-dev"
+

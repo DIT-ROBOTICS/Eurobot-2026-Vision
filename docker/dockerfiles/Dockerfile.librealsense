@@ -28,7 +28,6 @@ RUN cd /usr/src/librealsense \
     -DCMAKE_C_FLAGS_RELEASE="${CMAKE_C_FLAGS_RELEASE} -s" \
     -DCMAKE_CXX_FLAGS_RELEASE="${CMAKE_CXX_FLAGS_RELEASE} -s" \
     -DCMAKE_INSTALL_PREFIX=/opt/librealsense \
-    -DPYTHON_INSTALL_DIR=/opt/librealsense/py \
     -DBUILD_WITH_OPENGL=OFF \
     -DBUILD_GRAPHICAL_EXAMPLES=OFF \
     -DBUILD_EXAMPLES=OFF \
@@ -41,3 +40,4 @@ RUN cd /usr/src/librealsense \
     
 FROM ros:humble AS runtime
 COPY --from=build /opt/librealsense /opt/librealsense
+COPY --from=build /usr/lib/python3/dist-packages/pyrealsense2 /usr/lib/python3/dist-packages/pyrealsense2
