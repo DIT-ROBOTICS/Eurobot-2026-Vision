@@ -23,7 +23,7 @@ COMPOSE_DEV ?= docker/composes/compose.dev.yml
 COMPOSE_RUN ?= docker/composes/compose.run.yml
 
 
-.PHONY: help login builder build dev down tags
+.PHONY: help login build dev down tags
 
 %:
 	@:
@@ -32,7 +32,6 @@ help:
 	@echo "Usage: make [target]"
 	@echo "Makefile targets:"
 	@echo "  make login        |  Login GHCR (CR_PAT token in CLI)"
-	@echo "  make builder      |  Make builder: librealsense"
 	@echo "  make build [opt]  |  Make images"
 	@echo "  make dev   [opt]  |  Compose development up"
 	@echo "  make down  [opt]  |  Compose down"
@@ -50,9 +49,6 @@ ifeq ($(CR_PAT),)
 else
 	@echo "$(CR_PAT)" | docker login $(REGISTRY) -u "$(USER)" --password-stdin
 endif
-
-builder:
-	docker buildx bake $(BAKE_FLAGS) librealsense
 
 build:
 ifeq ($(SERVICE),)
