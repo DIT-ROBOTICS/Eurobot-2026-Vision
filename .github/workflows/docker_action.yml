@@ -69,6 +69,6 @@ jobs:
       - name: Manual Build
         if: github.event_name == 'workflow_dispatch'
         run: |
-          make build ${ { github.event.inputs.service } } \
-                     PUSH=${{ github.event.inputs.push }} \
-                     PLATFORMS="${{ github.event.inputs.platforms }}"
+          make build ${{ github.event.inputs.service }} \
+               PUSH=${{ github.event.inputs.push }} \
+               PLATFORMS='${{ github.event.inputs.platforms }}'
