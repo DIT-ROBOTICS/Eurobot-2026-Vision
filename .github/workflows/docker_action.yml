@@ -12,10 +12,6 @@ on:
       - 'Makefile'
   workflow_dispatch:
     inputs:
-      service:
-        description: "Service to build (blank = all)"
-        required: false
-        default: ""
       push:
         description: "Push to GHCR? (0 or 1)"
         required: true
@@ -69,6 +65,6 @@ jobs:
       - name: Manual Build
         if: github.event_name == 'workflow_dispatch'
         run: |
-          make build ${{ github.event.inputs.service }} \
+          make build \
                PUSH=${{ github.event.inputs.push }} \
                PLATFORMS='${{ github.event.inputs.platforms }}'
