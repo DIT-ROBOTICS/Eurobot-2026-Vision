@@ -17,7 +17,7 @@ on:
         required: true
         default: "0"
       platforms:
-        description: "Platforms for build"
+        description: "Platforms"
         required: true
         default: "linux/amd64,linux/arm64"
 
@@ -61,12 +61,17 @@ jobs:
       # --- Push main ---
       - name: Build & Push (main)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: make build PUSH=1
+        run: |
+          make build librealsense PUSH＝1
+          make build realsense aruco PUSH=1
 
       # --- Manual build ---
       - name: Manual Build
         if: github.event_name == 'workflow_dispatch'
         run: |
           make build librealsense \
+               PUSH=${{ github.event.inputs.push }} \
+               PLATFORMS='${{ github.event.inputs.platforms }}'
+          make build realsense aruco \
                PUSH=${{ github.event.inputs.push }} \
                PLATFORMS='${{ github.event.inputs.platforms }}'
