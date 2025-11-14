@@ -35,7 +35,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
+      - name: Debug paths
+        run: |
+          pwd
+          ls
+          ls -R packages || true
+          
       - name: QEMU (multi-arch)
         if: github.event_name != 'pull_request'
         uses: docker/setup-qemu-action@v3
