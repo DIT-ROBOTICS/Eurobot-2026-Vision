@@ -59,6 +59,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        run: echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
       # --- PR build ---
       - name: PR Test Build
         if: github.event_name == 'pull_request'
