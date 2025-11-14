@@ -32,7 +32,6 @@ COPY packages/realsense_pkg ${ROS_WS}/src
 RUN sh /build/rosdep_init.sh ${USER} \
  && sh /build/colcon_build.sh ${USER}
 USER $USER
-VOLUME ${ROS_WS}/install
 CMD [ "/bin/bash" ]
 
 FROM base AS aruco
@@ -51,5 +50,4 @@ COPY packages/aruco_pkg ${ROS_WS}/src
 RUN sh /build/rosdep_init.sh ${USER} \
  && sh /build/colcon_build.sh ${USER}
 USER $USER
-VOLUME ${ROS_WS}/install
 CMD [ "/bin/bash" ]
