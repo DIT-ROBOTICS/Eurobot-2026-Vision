@@ -62,7 +62,7 @@ jobs:
       - name: Build & Push (main)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          make build librealsense PUSH＝1
+          make build librealsense PUSH=1
           make build realsense aruco PUSH=1
 
       # --- Manual build ---

@@ -1,5 +1,7 @@
-#!bin/sh
-. "/opt/ros/humble/setup.sh"
+#!/usr/bin/env bash
+set -e 
+
+source /opt/ros/humble/setup.bash
 apt-get update
 apt-get install -y \
     git \

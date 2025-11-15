@@ -4,7 +4,7 @@ set -e
 USER=$1
 ROS_WS=/home/${USER}/vision_ws
 
-. "/opt/ros/humble/setup.sh"
+source /opt/ros/humble/setup.bash
 if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then
     echo "[rosdep] initializing..."
     sudo rosdep init

@@ -4,7 +4,7 @@ set -e
 USER=$1
 ROS_WS=/home/${USER}/vision_ws
 
-. "/opt/ros/humble/setup.sh"
+source /opt/ros/humble/setup.bash
 cd ${ROS_WS}
 colcon build
 chown -R ${USER}:${USER} ${ROS_WS}

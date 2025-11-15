@@ -8,7 +8,7 @@ COPY docker/scripts/build/ /build/
 COPY docker/scripts/entrypoint/ros_entrypoint.sh /ros_entrypoint.sh
 RUN chown root:root /ros_entrypoint.sh \
  && chmod 755 /ros_entrypoint.sh \
- && sh /build/install_depend.sh
+ && bash /build/install_depend.sh
 
 FROM ghcr.io/dit-robotics/librealsense:${LIBREALSENSE_VERSION} AS builder
 
@@ -24,14 +24,14 @@ ARG USER_UID
 ARG USER_GID
 ENV ROS_WS=/home/$USER/vision_ws
 ENV PYTHONPATH=/usr/local/lib:${PYTHONPATH}
-RUN sh /build/setup_user.sh ${USER} ${USER_UID} ${USER_GID}
+RUN bash /build/setup_user.sh ${USER} ${USER_UID} ${USER_GID}
 ENTRYPOINT [ "/ros_entrypoint.sh" ]
 WORKDIR ${ROS_WS}
 COPY --from=builder /opt/librealsense /usr/local/
 COPY --from=builder /usr/lib/python3/dist-packages/pyrealsense2 /usr/lib/python3/dist-packages/pyrealsense2
 COPY packages/realsense_pkg ${ROS_WS}/src
-RUN sh /build/rosdep_init.sh ${USER} \
- && sh /build/colcon_build.sh ${USER}
+RUN bash /build/rosdep_init.sh ${USER} \
+ && bash /build/colcon_build.sh ${USER}
 USER $USER
 CMD [ "/bin/bash" ]
 
@@ -44,11 +44,11 @@ ARG USER
 ARG USER_UID
 ARG USER_GID
 ENV ROS_WS=/home/${USER}/vision_ws
-RUN sh /build/setup_user.sh ${USER} ${USER_UID} ${USER_GID}
+RUN bash /build/setup_user.sh ${USER} ${USER_UID} ${USER_GID}
 ENTRYPOINT [ "/ros_entrypoint.sh" ]
 WORKDIR ${ROS_WS}
 COPY packages/aruco_pkg ${ROS_WS}/src
-RUN sh /build/rosdep_init.sh ${USER} \
- && sh /build/colcon_build.sh ${USER}
+RUN bash /build/rosdep_init.sh ${USER} \
+ && bash /build/colcon_build.sh ${USER}
 USER $USER
 CMD [ "/bin/bash" ]
