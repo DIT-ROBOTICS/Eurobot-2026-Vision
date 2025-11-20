@@ -5,11 +5,15 @@ on:
     branches: [ main ]
     paths:
       - 'docker/dockerfiles/**'
+      - 'docker/scripts/**'
       - 'Makefile'
+      - '.env'
   pull_request:
     paths:
       - 'docker/dockerfiles/**'
+      - 'docker/scripts/**'
       - 'Makefile'
+      - '.env'
   workflow_dispatch:
     inputs:
       push:
