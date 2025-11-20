@@ -15,8 +15,9 @@ x-common-env: &env
 services:
   realsense:
     image: ghcr.io/dit-robotics/realsense:latest
-    container_name: realsense
+    container_name: realsense-dev
     <<: *var
+    hostname: realsense
     group_add: ["video"]
     environment:
       <<: *env
@@ -26,29 +27,28 @@ services:
     volumes:
       - /dev:/dev
       # - ../../config/dds.xml:/tmp/dds.xml:ro
-      - ../../packages/realsense_pkg:/home/realsense/vision_ws/src
+      - ../../packages/realsense_pkg:/home/vision/vision_ws/src
       - type: tmpfs
         target: /home/vision_ws/build
       - type: volume
         source: install
         target: /home/vision_ws/install
-    hostname: realsense
 
   aruco:
     image: ghcr.io/dit-robotics/aruco:latest
-    container_name: aruco
+    container_name: aruco-dev
     <<: *var
+    hostname: aruco
     environment:
       <<: *env
     volumes:
       # - ../../config/dds.xml:/tmp/dds.xml:ro
-      - ../../packages/aruco_pkg:/home/aruco/vision_ws/aruco_ros
+      - ../../packages/aruco_pkg:/home/vision/vision_ws/aruco_ros
       - type: tmpfs
         target: /home/vision_ws/build
       - type: volume
         source: install
         target: /home/vision_ws/install
-    hostname: aruco
 
 volumes:
   install:

@@ -66,14 +66,26 @@ else
 	docker compose -f $(COMPOSE_DEV) up $(SERVICE) -d
 endif
 
+run: 
+ifeq ($(SERVICE),)
+	@echo ">> Running ALL Services ..."
+	docker compose -f $(COMPOSE_RUN) up -d
+else
+	@echo ">> Running Service: $(SERVICE)"
+	docker compose -f $(COMPOSE_RUN) up $(SERVICE) -d
+endif
+
 down:
 ifeq ($(SERVICE),)
 	@echo ">> Stopping ALL Services ..."
 	docker compose -f $(COMPOSE_DEV) down
+	docker compose -f $(COMPOSE_RUN) down
 else
 	@echo ">> Stopping Service: $(SERVICE)"
 	docker compose -f $(COMPOSE_DEV) stop $(SERVICE)
 	docker compose -f $(COMPOSE_DEV) rm -f $(SERVICE)
+	docker compose -f $(COMPOSE_RUN) stop $(SERVICE)
+	docker compose -f $(COMPOSE_RUN) rm -f $(SERVICE)
 endif
 	@echo ">> Cleaning tmpfs volumes ..."
 	@vols=$$(docker volume ls -qf dangling=true | grep -v "_install" || true); \

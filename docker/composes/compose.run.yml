@@ -1,0 +1,50 @@
+name: vision-run
+x-common-vars: &var
+  tty: true
+  stdin_open: true
+  privileged: true
+  ipc: host
+  network_mode: host
+  stop_grace_period: 1s
+
+x-common-env: &env
+  RMW_IMPLEMENTATION: $RMW_IMPLEMENTATION
+  ROS_DOMAIN_ID: $ROS_DOMAIN_ID
+  # CYCLONEDDS_URI: /tmp/dds.xml
+
+services:
+  realsense:
+    image: ghcr.io/dit-robotics/realsense:latest
+    container_name: realsense-run
+    <<: *var
+    hostname: realsense
+    group_add: ["video"]
+    environment:
+      <<: *env
+      REALSENSE_NO1: $REALSENSE_NO1
+      REALSENSE_NO2: $REALSENSE_NO2
+      REALSENSE_NO3: $REALSENSE_NO3
+    volumes:
+      - /dev:/dev
+      # - ../../config/dds.xml:/tmp/dds.xml:ro
+      - type: volume
+        source: install
+        target: /home/vision_ws/install:ro
+    command: ["ros2", "launch", "realsense2_camera", "rs_launch.py"]
+
+  aruco:
+    image: ghcr.io/dit-robotics/aruco:latest
+    container_name: aruco-dev
+    <<: *var
+    hostname: aruco
+    environment:
+      <<: *env
+    volumes:
+      # - ../../config/dds.xml:/tmp/dds.xml:ro
+      - type: volume
+        source: install
+        target: /home/vision_ws/install
+
+volumes:
+  install:
+    name: vision_install
