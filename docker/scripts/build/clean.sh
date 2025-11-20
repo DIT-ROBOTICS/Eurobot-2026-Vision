@@ -6,4 +6,5 @@ rm -rf /var/lib/apt/lists/* \
        /var/cache/apt/* \
        /var/cache/debconf/* \
        /var/log/apt/* \
-       /var/log/dpkg.log 
+       /var/log/dpkg.log \
+       src
