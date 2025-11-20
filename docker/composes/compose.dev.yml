@@ -32,6 +32,7 @@ services:
       - type: volume
         source: install
         target: /home/vision_ws/install
+    hostname: realsense
 
   aruco:
     image: ghcr.io/dit-robotics/aruco:latest
@@ -47,6 +48,7 @@ services:
       - type: volume
         source: install
         target: /home/vision_ws/install
+    hostname: aruco
 
 volumes:
   install:
