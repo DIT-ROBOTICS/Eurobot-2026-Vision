@@ -2,6 +2,7 @@ variable "REGISTRY"    { default = "ghcr.io" }
 variable "ORG"         { default = "dit-robotics" }
 variable "VERSION"     { default = "latest" }
 variable "BASE_IMAGE"  { default = "ros:humble" }
+variable "USER"        { default = "vision" }
 variable "USER_UID"    { default = "1000" }
 variable "USER_GID"    { default = "1000" }
 
@@ -19,8 +20,10 @@ target "common" {
   cache-to    = ["type=gha,mode=max"]
   args = {
     BASE_IMAGE = "${BASE_IMAGE}"
+    USER = "${USER}"
     USER_UID   = "${USER_UID}"
     USER_GID   = "${USER_GID}"
+    LIBREALSENSE_VERSION  = "${LIBREALSENSE_VERSION}"
   }
 }
 
@@ -28,9 +31,6 @@ target "librealsense" {
   inherits   = ["common"]
   dockerfile = "docker/dockerfiles/Dockerfile.librealsense"
   tags       = ["${REGISTRY}/${ORG}/librealsense:${LIBREALSENSE_VERSION}"]
-  args       = {
-    LIBREALSENSE_VERSION  = "${LIBREALSENSE_VERSION}"
-  }
 }
 
 target "realsense" {
@@ -39,8 +39,6 @@ target "realsense" {
   target     = "realsense"
   tags       = ["${REGISTRY}/${ORG}/realsense:${VERSION}"]
   args = {
-    USER = "realsense"
-    LIBREALSENSE_VERSION  = "${LIBREALSENSE_VERSION}"
     REALSENSE_ROS_VERSION = "${REALSENSE_ROS_VERSION}"
   }
 }
@@ -50,7 +48,4 @@ target "aruco" {
   dockerfile = "docker/dockerfiles/Dockerfile.ros"
   target     = "aruco"
   tags       = ["${REGISTRY}/${ORG}/aruco:${VERSION}"]
-  args = {
-    USER = "aruco"
-  }
 }
