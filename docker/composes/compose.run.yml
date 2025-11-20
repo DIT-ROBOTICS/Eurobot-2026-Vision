@@ -27,9 +27,7 @@ services:
     volumes:
       - /dev:/dev
       # - ../../config/dds.xml:/tmp/dds.xml:ro
-      - type: volume
-        source: install
-        target: /home/vision_ws/install:ro
+      - install:/home/vision/vision_ws/install
     command: ["ros2", "launch", "realsense2_camera", "rs_launch.py"]
 
   aruco:
@@ -41,10 +39,9 @@ services:
       <<: *env
     volumes:
       # - ../../config/dds.xml:/tmp/dds.xml:ro
-      - type: volume
-        source: install
-        target: /home/vision_ws/install
+      - install:home/vision/vision_ws/install
 
 volumes:
   install:
     name: vision_install
+    external: true

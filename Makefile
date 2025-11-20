@@ -87,9 +87,6 @@ else
 	docker compose -f $(COMPOSE_RUN) stop $(SERVICE)
 	docker compose -f $(COMPOSE_RUN) rm -f $(SERVICE)
 endif
-	@echo ">> Cleaning tmpfs volumes ..."
-	@vols=$$(docker volume ls -qf dangling=true | grep -v "_install" || true); \
-	docker volume rm $$vols
 
 tags:
 	@echo "librealsense: $(REGISTRY)/$(ORG)/librealsense:$(LIBREALSENSE_VERSION)"

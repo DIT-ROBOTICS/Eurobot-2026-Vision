@@ -17,8 +17,4 @@ apt-get install -y \
     apt-transport-https \
     software-properties-common \
     ros-humble-launch-pytest \
-    ros-humble-rmw-cyclonedds-cpp \
-    
-apt-get clean -y 
-rm -rf /var/lib/apt/lists/*
-
+    ros-humble-rmw-cyclonedds-cpp

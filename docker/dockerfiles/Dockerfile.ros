@@ -20,6 +20,7 @@ COPY docker/scripts/entrypoint/ros_entrypoint.sh /ros_entrypoint.sh
 RUN chown root:root /ros_entrypoint.sh \
  && chmod 755 /ros_entrypoint.sh \
  && bash /build/install_depend.sh \
+ && bash /build/clean.sh \
  && bash /build/setup_user.sh ${USER} ${USER_UID} ${USER_GID}
 ENTRYPOINT [ "/ros_entrypoint.sh" ]
 WORKDIR ${ROS_WS}
@@ -35,12 +36,16 @@ COPY --from=builder /opt/librealsense /usr/local/
 COPY --from=builder /usr/lib/python3/dist-packages/pyrealsense2 /usr/lib/python3/dist-packages/pyrealsense2
 COPY packages/realsense_pkg ${ROS_WS}/src
 RUN bash /build/rosdep_init.sh ${USER} \
- && bash /build/colcon_build.sh ${USER}
+ && bash /build/clean.sh \
+ && rm -rf /build && mkdir install \
+ && chown -R ${USER}:${USER} ${ROS_WS}
 USER $USER
 
 FROM base AS aruco
 LABEL org.opencontainers.image.title="vision-aruco"
 COPY packages/aruco_pkg ${ROS_WS}/src
 RUN bash /build/rosdep_init.sh ${USER} \
- && bash /build/colcon_build.sh ${USER}
+ && bash /build/clean.sh \
+ && rm -rf /build && mkdir install \
+ && chown -R ${USER}:${USER} ${ROS_WS}
 USER $USER

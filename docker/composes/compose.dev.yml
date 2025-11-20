@@ -6,6 +6,8 @@ x-common-vars: &var
   ipc: host
   network_mode: host
   stop_grace_period: 1s
+  tmpfs:
+    - /home/vision/vision_ws/build:mode=755,uid=$USER_UID,gid=$USER_GID
 
 x-common-env: &env
   RMW_IMPLEMENTATION: $RMW_IMPLEMENTATION
@@ -28,11 +30,7 @@ services:
       - /dev:/dev
       # - ../../config/dds.xml:/tmp/dds.xml:ro
       - ../../packages/realsense_pkg:/home/vision/vision_ws/src
-      - type: tmpfs
-        target: /home/vision_ws/build
-      - type: volume
-        source: install
-        target: /home/vision_ws/install
+      - install:/home/vision/vision_ws/install
 
   aruco:
     image: ghcr.io/dit-robotics/aruco:latest
@@ -43,12 +41,8 @@ services:
       <<: *env
     volumes:
       # - ../../config/dds.xml:/tmp/dds.xml:ro
-      - ../../packages/aruco_pkg:/home/vision/vision_ws/aruco_ros
-      - type: tmpfs
-        target: /home/vision_ws/build
-      - type: volume
-        source: install
-        target: /home/vision_ws/install
+      - ../../packages/aruco_pkg:/home/vision/vision_ws/src
+      - install:home/vision/vision_ws/install
 
 volumes:
   install:
