@@ -19,6 +19,7 @@ include_directories(
 )
 
 add_executable(aruco_detector_node src/aruco_detector_node.cpp)
+add_executable(object_feedback_node src/object_feedback_node.cpp)
 
 ament_target_dependencies(aruco_detector_node
   rclcpp
@@ -34,8 +35,13 @@ target_link_libraries(aruco_detector_node
   ${OpenCV_LIBRARIES}
 )
 
+target_link_libraries(object_feedback_node
+  ${OpenCV_LIBRARIES}
+)
+
 install(TARGETS
   aruco_detector_node
+  object_feedback_node
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

@@ -36,6 +36,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
         ros-humble-octomap-ros \
         ros-humble-octomap-msgs \
         ros-humble-rviz2 \
+        ros-humble-tf2-ros \
         ros-humble-tf2-geometry-msgs \
         ros-humble-tf2-eigen \
     && rm -rf /var/lib/apt/lists/*
