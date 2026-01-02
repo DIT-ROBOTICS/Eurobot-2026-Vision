@@ -31,6 +31,16 @@ ament_target_dependencies(aruco_detector_node
   geometry_msgs
 )
 
+ament_target_dependencies(object_feedback_node
+  rclcpp
+  sensor_msgs
+  cv_bridge
+  tf2_ros
+  tf2_geometry_msgs
+  tf2_eigen
+  geometry_msgs
+)
+
 target_link_libraries(aruco_detector_node
   ${OpenCV_LIBRARIES}
 )

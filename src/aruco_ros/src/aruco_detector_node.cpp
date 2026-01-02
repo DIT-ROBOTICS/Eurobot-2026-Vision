@@ -40,18 +40,19 @@ public:
 
         dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_100);
         detector_params_ = cv::aruco::DetectorParameters::create();
-        detector_params_->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
-        detector_params_->cornerRefinementWinSize = 5;
-        detector_params_->cornerRefinementMaxIterations = 30;
-        detector_params_->cornerRefinementMinAccuracy = 0.1;
         detector_params_->adaptiveThreshWinSizeMin = 3;
-        detector_params_->adaptiveThreshWinSizeMax = 23;
-        detector_params_->adaptiveThreshWinSizeStep = 10;
-        detector_params_->minCornerDistanceRate = 0.05;
-        detector_params_->minMarkerDistanceRate = 0.05;
+        detector_params_->adaptiveThreshWinSizeMax = 11;
+        detector_params_->adaptiveThreshWinSizeStep = 8;
+        detector_params_->adaptiveThreshConstant = 4;
+        detector_params_->minMarkerPerimeterRate = 0.002;
+        detector_params_->maxMarkerPerimeterRate = 0.5;
+        detector_params_->polygonalApproxAccuracyRate = 0.07;
+        detector_params_->cornerRefinementMethod = cv::aruco::CORNER_REFINE_CONTOUR;
+        detector_params_->cornerRefinementWinSize = 2;
+        detector_params_->cornerRefinementMaxIterations = 30;
+        detector_params_->cornerRefinementMinAccuracy = 0.05;
 
-
-
+        // use ros2 topic echo /camera/camera_info to get camera intrinsics
         camera_matrix_ = (cv::Mat1d(3, 3) <<
             605.9448852539062, 0.0, 314.1728515625,
             0.0, 605.9448852539062, 247.0227813720703,
