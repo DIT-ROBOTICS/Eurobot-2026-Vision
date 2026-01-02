@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(aruco_ros)
+project(aruco_robot)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -18,9 +18,9 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_executable(aruco_detector_node src/aruco_detector_node.cpp)
+add_executable(robot_detector src/robot_detector.cpp)
 
-ament_target_dependencies(aruco_detector_node
+ament_target_dependencies(robot_detector
   rclcpp
   sensor_msgs
   cv_bridge
@@ -30,12 +30,12 @@ ament_target_dependencies(aruco_detector_node
   geometry_msgs
 )
 
-target_link_libraries(aruco_detector_node
+target_link_libraries(robot_detector
   ${OpenCV_LIBRARIES}
 )
 
 install(TARGETS
-  aruco_detector_node
+  robot_detector
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
