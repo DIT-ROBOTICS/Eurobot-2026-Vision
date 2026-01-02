@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>aruco_ros</name>
+  <name>aruco_sima</name>
   <version>0.0.2</version>
-  <description>ROS2 C++ node for detecting ArUco markers and publishing camera pose via TF.</description>
+  <description>ROS2 C++ node for detecting sima AprilTag markers and publishing marker pose via TF.</description>
 
   <maintainer email="seanchen1117@gmail.com">Sean Chen</maintainer>
   <license>Apache-2.0</license>
