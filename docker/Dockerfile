@@ -28,16 +28,27 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
     apt-get update && apt-get install -y \
-        ros-humble-ros-base \
-        ros-humble-image-transport-plugins \
-        ros-humble-cv-bridge \
-        ros-humble-vision-msgs \
-        ros-humble-pcl-ros \
-        ros-humble-octomap-ros \
-        ros-humble-octomap-msgs \
-        ros-humble-rviz2 \
-        ros-humble-tf2-geometry-msgs \
-        ros-humble-tf2-eigen \
+    ros-humble-ros-base \
+    ros-humble-image-transport-plugins \
+    ros-humble-cv-bridge \
+    ros-humble-vision-msgs \
+    ros-humble-pcl-ros \
+    ros-humble-octomap-ros \
+    ros-humble-octomap-msgs \
+    ros-humble-rviz2 \
+    ros-humble-tf2-geometry-msgs \
+    ros-humble-tf2-eigen \
+    ros-humble-rosbridge-suite \
+    ros-humble-foxglove-bridge \
+    ros-humble-pcl-conversions \
+    cmake \
+    build-essential \
+    libceres-dev \
+    libeigen3-dev \
+    libgoogle-glog-dev \
+    libgflags-dev \
+    libopencv-dev \
+    libsuitesparse-dev \
     && rm -rf /var/lib/apt/lists/*
 
 ARG USERNAME=vision
@@ -52,9 +63,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
 USER $USERNAME
 
 COPY --chown=$USERNAME:$USERNAME \
-     modules/install_realsense.sh /tmp/install_realsense.sh
+    modules/install_realsense.sh /tmp/install_realsense.sh
+
 RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
-    /tmp/install_realsense.sh && rm /tmp/install_realsense.sh
+    sudo apt-get update && sudo apt-get install -y dos2unix && \
+    dos2unix /tmp/install_realsense.sh && \
+    bash /tmp/install_realsense.sh && \
+    sudo rm /tmp/install_realsense.sh
 
 ENTRYPOINT []
 CMD ["/bin/bash"]

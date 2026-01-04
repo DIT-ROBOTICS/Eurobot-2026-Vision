@@ -5,3 +5,8 @@
 /build
 /install
 /log
+
+# VINS-Fusion (Redundant Copies)
+/src/vins_fusion
+/config/vins
+/support_files
