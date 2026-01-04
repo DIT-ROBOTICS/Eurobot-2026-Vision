@@ -7,7 +7,6 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include "sensor_msgs/msg/camera_info.hpp"
 #include "cv_bridge/cv_bridge.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
@@ -27,7 +26,7 @@ class RobotDetectorNode : public rclcpp::Node {
 public:
     RobotDetectorNode() : Node("Robot_detector_node") {
         // 1. 設定 Marker 大小 、 Slerp 插值係數
-        this->declare_parameter("marker_size", 0.1); 
+        this->declare_parameter("marker_size", 0.07); 
         marker_size_ = this->get_parameter("marker_size").as_double();
 
         this->declare_parameter("filter_alpha", 0.15);
@@ -38,10 +37,7 @@ public:
         image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
             "/camera/camera/color/image_raw", 10, std::bind(&RobotDetectorNode::image_callback, this, _1));
         
-        // 3. 訂閱校正資訊
-        info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-            "camera_self_info", 10, std::bind(&RobotDetectorNode::info_callback, this, _1));
-
+        // 3. TF 廣播器
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
         // 4. 初始化 Aruco
@@ -114,19 +110,6 @@ private:
         );
         res.normalize();
         return res;
-    }
-
-    void info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr msg) {
-        // 更新內參矩陣 K
-        cam_matrix_ = (cv::Mat_<double>(3, 3) << 
-            msg->k[0], msg->k[1], msg->k[2],
-            msg->k[3], msg->k[4], msg->k[5],
-            msg->k[6], msg->k[7], msg->k[8]);
-
-        // 更新畸變係數 D
-        dist_coeffs_ = cv::Mat(msg->d).clone();
-        
-        RCLCPP_INFO_ONCE(this->get_logger(), "Camera parameters updated from topic.");
     }
 
     void image_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
@@ -211,7 +194,6 @@ private:
     }
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
-    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     cv::Ptr<cv::aruco::Dictionary> dictionary_;
     cv::Ptr<cv::aruco::DetectorParameters> detector_params_;
@@ -220,7 +202,6 @@ private:
     std::vector<int> target_ids_;
     double marker_size_;
     double filter_alpha_;
-    std::mutex data_mutex_;
     std::map<int, MarkerState> filter_states_;
 };
 

@@ -8,11 +8,11 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     # 1. 取得 Package 的路徑
-    pkg_Robot_localization = get_package_share_directory('Robot_localization')
+    pkg_localization = get_package_share_directory('robot_sima_localization')
     pkg_realsense_ros = get_package_share_directory('realsense2_camera')
 
     # 2. 定義設定檔路徑
-    config_path = os.path.join(pkg_Robot_localization, 'config', 'camera_param.yaml')
+    config_path = os.path.join(pkg_localization, 'config', 'camera_param.yaml')
     realsense_path = os.path.join(pkg_realsense_ros, 'launch', 'rs_launch.py')
 
     # 3. 宣告啟動參數：透過 mode:=cal 或 mode:=run 切換
@@ -34,7 +34,7 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals('mode', 'cal'),
         actions=[
             Node(
-                package='aruco_ros',
+                package='robot_sima_localization',
                 executable='Camera_calibrator_node',
                 name='Camera_calibrator_node',
                 output='screen'
@@ -47,14 +47,14 @@ def generate_launch_description():
         condition=LaunchConfigurationEquals('mode', 'run'),
         actions=[
             Node(
-                package='aruco_ros',
+                package='robot_sima_localization',
                 executable='Robot_detector_node',
                 name='Robot_detector_node',
                 parameters=[config_path],
                 output='screen'
             ),
             Node(
-                package='aruco_ros',
+                package='robot_sima_localization',
                 executable='Robot_localizer_node',
                 name='Robot_localizer_node',
                 output='screen'
@@ -74,7 +74,7 @@ def generate_launch_description():
             #     arguments=['17.5', '21.0', '16,0', '0', '0', '0', '1', 'map', 'camera_link']
             # ),
             Node(
-                package='aruco_ros',
+                package='robot_sima_localization',
                 executable='aruco_detector_node',
                 name='aruco_detector_node',
                 output='screen'
