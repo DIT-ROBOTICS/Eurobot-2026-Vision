@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>Robot_localization</name>
+  <version>0.0.2</version>
+  <description>ROS2 C++ node for detecting ArUco markers and publishing camera pose via TF.</description>
+
+  <maintainer email="seanchen1117@gmail.com">Sean Chen</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>tf2_ros</depend>
+  <depend>geometry_msgs</depend>
+
+  <exec_depend>opencv</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,8 @@
+Robot_detector_node:
+  ros__parameters:
+    camera_matrix: [916.026611328125, 0.0, 653.2020263671875,
+                    0.0, 913.7075805664062, 366.09582519531256,
+                    0.0, 0.0, 1.0]
+    dist_coeffs: [0.0, 0.0, 0.0, 0.0, 0.0]
+    marker_size: 0.1
+    filter_alpha: 0.15
