@@ -22,3 +22,11 @@ services:
     volumes:
       - /dev:/dev
       - ../:/home/vision/vision_ws
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw  # for imshow
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

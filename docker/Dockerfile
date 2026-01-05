@@ -56,5 +56,14 @@ COPY --chown=$USERNAME:$USERNAME \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
     /tmp/install_realsense.sh && rm /tmp/install_realsense.sh
 
+RUN pip3 install --no-cache-dir --upgrade pip && \
+    pip3 install --no-cache-dir --force-reinstall \
+    "numpy<2.0.0" \
+    "opencv-python<4.9.0.80" \
+    "ultralytics" \
+    "roboflow" && \
+    pip3 install --no-cache-dir \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
 ENTRYPOINT []
 CMD ["/bin/bash"]
