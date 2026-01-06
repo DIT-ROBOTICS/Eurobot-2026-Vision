@@ -135,7 +135,7 @@ private:
         cv::aruco::detectMarkers(gray, dictionary_, corners, ids, detector_params_, rejected);
         if (ids.empty()) {
             RCLCPP_INFO(this->get_logger(), "no aruco");
-            cv::imshow("Aruco Detection", frame);
+            cv::imshow("Aruco Detector", frame);
             cv::waitKey(1);
             return;
         }
@@ -169,7 +169,7 @@ private:
 
         if (objectPoints.size() < 4) {
             RCLCPP_INFO(this->get_logger(), "Not enough corner points for PnP (%zu).", objectPoints.size());
-            cv::imshow("Aruco Detection", frame);
+            cv::imshow("Aruco Detector", frame);
             cv::waitKey(1);
             return;
         }

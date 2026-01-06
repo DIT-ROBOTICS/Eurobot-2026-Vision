@@ -8,18 +8,17 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     # 1. 取得 Package 的路徑
-    pkg_localization = get_package_share_directory('robot_sima_localization')
+    pkg_sima = get_package_share_directory('aruco_sima')
     pkg_realsense_ros = get_package_share_directory('realsense2_camera')
 
     # 2. 定義設定檔路徑
-    config_path = os.path.join(pkg_localization, 'config', 'camera_param.yaml')
+    config_path = os.path.join(pkg_sima, 'config', 'sima_param.yaml')
     realsense_path = os.path.join(pkg_realsense_ros, 'launch', 'rs_launch.py')
 
-    # 3. 宣告啟動參數：透過 mode:=cal 或 mode:=run 切換
+    # 3. 宣告啟動參數：透過 mode:=cal 或 mode:=robot 或 mode:=sima 切換
     mode_arg = DeclareLaunchArgument(
         'mode',
-        default_value='run',
-        description='運行模式: "cal" 開啟校正程序, "run" 開啟機器人偵測與定位'
+        default_value='robot',
     )
 
     # 4. RealSense Launch 檔
@@ -29,12 +28,30 @@ def generate_launch_description():
         # launch_arguments={'depth_module.profile': '640x480x30'}.items(),
     )
 
+    # 定義你要追蹤的 SIMA ID 清單
+    sima_ids = [1, 5, 7, 12, 14]
+    # 動態生成 SIMA 偵測節點清單
+    sima_nodes = []
+    for sid in sima_ids:
+        sima_nodes.append(
+            Node(
+                package='aruco_sima',
+                executable='Sima_detector_node',
+                name=f'sima_detector_{sid}', 
+                parameters=[
+                    config_path, # 載入 YAML 內參
+                    {'sima_id': sid} # 覆蓋或設定當前 Node 要抓的 ID
+                ],
+                output='screen'
+            )
+        )
+
     # --- 模式一：校正模式 (mode:=cal) ---
     calib_group = GroupAction(
         condition=LaunchConfigurationEquals('mode', 'cal'),
         actions=[
             Node(
-                package='robot_sima_localization',
+                package='aruco_sima',
                 executable='Camera_calibrator_node',
                 name='Camera_calibrator_node',
                 output='screen'
@@ -42,41 +59,28 @@ def generate_launch_description():
         ]
     )
 
-    # --- 模式二：比賽/偵測模式 (mode:=run) ---
-    run_group = GroupAction(
-        condition=LaunchConfigurationEquals('mode', 'run'),
+    # --- 模式二：Sima模式 (mode:=sima) ---
+    sima_group = GroupAction(
+        condition=LaunchConfigurationEquals('mode', 'sima'),
         actions=[
             Node(
-                package='robot_sima_localization',
-                executable='Robot_detector_node',
-                name='Robot_detector_node',
+                package='aruco_sima',
+                executable='Aruco_detector_node',
+                name='Aruco_detector_node',
+                output='screen'
+            ),
+            Node(
+                package='aruco_sima',
+                executable='Sima_detector_node',
+                name='Sima_detector_node',
                 parameters=[config_path],
                 output='screen'
             ),
-            Node(
-                package='robot_sima_localization',
-                executable='Robot_localizer_node',
-                name='Robot_localizer_node',
-                output='screen'
-            ),
+            # *sima_nodes,
             Node(
                 package='rviz2',
                 executable='rviz2',
                 name='rviz2',
-                output='screen'
-                # 如果你有預設的 .rviz 設定檔，可以取消下面這行的註解
-                # arguments=['-d', os.path.join(pkg_aruco_ros, 'rviz', 'aruco_config.rviz')]
-            ),
-            # 參數順序: x y z qx qy qz qw frame_id child_frame_id
-            # Node(
-            #     package='tf2_ros',
-            #     executable='static_transform_publisher',
-            #     arguments=['17.5', '21.0', '16,0', '0', '0', '0', '1', 'map', 'camera_link']
-            # ),
-            Node(
-                package='robot_sima_localization',
-                executable='aruco_detector_node',
-                name='aruco_detector_node',
                 output='screen'
             ),
         ]
@@ -86,5 +90,5 @@ def generate_launch_description():
         mode_arg,
         realsense_launch,
         calib_group,
-        run_group
+        sima_group
     ])

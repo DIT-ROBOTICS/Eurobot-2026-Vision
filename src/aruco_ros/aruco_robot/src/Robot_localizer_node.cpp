@@ -18,7 +18,7 @@ public:
         target_marker_frame_ = "robot_marker_" + std::to_string(this->get_parameter("target_marker_id").as_int());
         world_frame_ = "map";
 
-        // 2. 初始化 TF2 監聽器
+        // 2. 初始化 TF2
         tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
@@ -36,9 +36,7 @@ private:
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
         rclcpp::Time now = this->get_clock()->now();
         rclcpp::Time odom_time = msg->header.stamp;
-        
-        // 計算偏移：Odom 時間 - 系統當前時間
-        // 使用簡單的低通濾波 (Low-pass filter) 讓偏移量平滑，避免數值跳變
+        // 簡易低通濾波
         double sample_offset = (odom_time - now).seconds();
         time_offset_.store(0.9 * time_offset_.load() + 0.1 * sample_offset);
     }
@@ -47,17 +45,16 @@ private:
         geometry_msgs::msg::TransformStamped transform_stamped;
 
         try {
-            transform_stamped = tf_buffer_->lookupTransform(
-                world_frame_, target_marker_frame_, tf2::TimePointZero);
+            transform_stamped = tf_buffer_->lookupTransform(world_frame_, target_marker_frame_, tf2::TimePointZero);
         } catch (const tf2::TransformException & ex) {
             return;
         }
 
         geometry_msgs::msg::PoseStamped pose_msg;
         
+        // 時間戳校正、填入 Pose
         rclcpp::Time original_stamp = transform_stamped.header.stamp;
         pose_msg.header.stamp = original_stamp + rclcpp::Duration::from_seconds(time_offset_.load());
-        
         pose_msg.header.frame_id = world_frame_;
         pose_msg.pose.position.x = transform_stamped.transform.translation.x;
         pose_msg.pose.position.y = transform_stamped.transform.translation.y;
@@ -73,8 +70,8 @@ private:
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::TimerBase::SharedPtr timer_;
 
-    std::string target_marker_frame_;
     std::string world_frame_;
+    std::string target_marker_frame_;
     std::atomic<double> time_offset_{0.0};
 };
 

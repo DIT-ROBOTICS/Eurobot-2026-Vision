@@ -1,12 +1,12 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <mutex>
 #include <map>
 #include <algorithm>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
 #include "cv_bridge/cv_bridge.h"
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
@@ -25,19 +25,23 @@ struct MarkerState {
 class RobotDetectorNode : public rclcpp::Node {
 public:
     RobotDetectorNode() : Node("Robot_detector_node") {
-        // 1. 設定 Marker 大小 、 Slerp 插值係數
+        // 1. 設定參數
         this->declare_parameter("marker_size", 0.07); 
         marker_size_ = this->get_parameter("marker_size").as_double();
 
         this->declare_parameter("filter_alpha", 0.15);
         filter_alpha_ = this->get_parameter("filter_alpha").as_double();
 
-        // 2. 訂閱相機影像
+        this->declare_parameter("robot_ids", std::vector<int>{2});
+        auto raw_ids = this->get_parameter("robot_ids").as_integer_array();
+        target_ids_.assign(raw_ids.begin(), raw_ids.end());
+
+        // 2. 初始化通訊組件
         using std::placeholders::_1;
         image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
             "/camera/camera/color/image_raw", 10, std::bind(&RobotDetectorNode::image_callback, this, _1));
-        
-        // 3. TF 廣播器
+        info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
+            "/camera/camera/color/camera_info", 10, std::bind(&RobotDetectorNode::camera_info_callback, this, _1));
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
         // 4. 初始化 Aruco
@@ -59,18 +63,13 @@ public:
         detector_params_->minCornerDistanceRate = 0.03;
         detector_params_->minMarkerDistanceRate = 0.05;
 
-        // 5. 預設內參
+        // 5. 相機內參
         this->declare_parameter("camera_matrix", std::vector<double>(9, 0.0));
         this->declare_parameter("dist_coeffs", std::vector<double>(5, 0.0));
-
         std::vector<double> k_vec = this->get_parameter("camera_matrix").as_double_array();
         std::vector<double> d_vec = this->get_parameter("dist_coeffs").as_double_array();
-
         cam_matrix_ = cv::Mat(3, 3, CV_64F, k_vec.data()).clone();
         dist_coeffs_ = cv::Mat(1, 5, CV_64F, d_vec.data()).clone();
-
-        // 6. 設定目標 ID
-        target_ids_ = {2, 6};
 
         RCLCPP_INFO(this->get_logger(), "Robot Detector Node started.");
     }
@@ -111,10 +110,22 @@ private:
         res.normalize();
         return res;
     }
+    
+    void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr info) {
+        cam_matrix_ = (cv::Mat_<double>(3,3) << 
+            info->k[0], info->k[1], info->k[2],
+            info->k[3], info->k[4], info->k[5],
+            info->k[6], info->k[7], info->k[8]);
+        dist_coeffs_ = cv::Mat(info->d).clone();
+        dist_coeffs_.convertTo(dist_coeffs_, CV_64F);
+    }
 
     void image_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
+        if (cam_matrix_.empty() || cam_matrix_.at<double>(0,0) == 0) {
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "等待內參中");
+            return; 
+        }
         cv_bridge::CvImagePtr cv_ptr;
-
         try {
             cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
         } catch (cv_bridge::Exception& e) {
@@ -122,17 +133,17 @@ private:
             return;
         }
         cv::Mat debug_frame = cv_ptr->image.clone();
-
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f>> corners;
+        
         cv::aruco::detectMarkers(cv_ptr->image, dictionary_, corners, ids, detector_params_);
-
+        cv::aruco::drawDetectedMarkers(debug_frame, corners, ids, cv::Scalar(0, 255, 0));
         if (ids.empty()) {
-            cv::imshow("Aruco Debug", debug_frame);
+            cv::imshow("Robot Detector", debug_frame);
             cv::waitKey(1);
             return;
         }
-        cv::aruco::drawDetectedMarkers(debug_frame, corners, ids);
+
         // 定義 3D 空間中 Marker 的四個角點座標
         std::vector<cv::Point3f> objPoints = {
             cv::Point3f(-marker_size_/2,  marker_size_/2, 0),
@@ -147,7 +158,6 @@ private:
             if (std::find(target_ids_.begin(), target_ids_.end(), id) != target_ids_.end()) {
                 cv::Vec3d rvec, tvec;
                 if (cv::solvePnP(objPoints, corners[i], cam_matrix_, dist_coeffs_, rvec, tvec)) {
-                    cv::drawFrameAxes(debug_frame, cam_matrix_, dist_coeffs_, rvec, tvec, marker_size_ * 0.5f);
                     // 轉換目前的 Rotation 為四元數
                     cv::Mat R;
                     cv::Rodrigues(rvec, R);
@@ -156,7 +166,6 @@ private:
                                          R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2));
                     tf2::Quaternion q_current;
                     tf2_R.getRotation(q_current);
-
                     // --- 執行濾波程序 ---
                     if (filter_states_.find(id) == filter_states_.end()) {
                         filter_states_[id] = {tvec, q_current, true};
@@ -166,12 +175,12 @@ private:
                         // 旋轉 Slerp 濾波
                         filter_states_[id].q = slerp_quat(filter_states_[id].q, q_current, filter_alpha_);
                     }
-
                     publish_filtered_tf(filter_states_[id], id, msg->header.stamp, msg->header.frame_id);
+                    cv::drawFrameAxes(debug_frame, cam_matrix_, dist_coeffs_, rvec, tvec, marker_size_ * 0.5f);
                 }
             }
         }
-        cv::imshow("Aruco Debug", debug_frame);
+        cv::imshow("Robot Detector", debug_frame);
         cv::waitKey(1);
     }
 
@@ -194,6 +203,7 @@ private:
     }
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     cv::Ptr<cv::aruco::Dictionary> dictionary_;
     cv::Ptr<cv::aruco::DetectorParameters> detector_params_;
