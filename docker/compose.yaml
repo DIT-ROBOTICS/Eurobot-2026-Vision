@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
       args:
         USER_UID: ${USER_UID:-1000}
-    image: wintera1233/vision:humble-numpy-opencv
+    image: eurobot-2026-vision:latest
     container_name: vision-ws
     stdin_open: true
     tty: true
@@ -13,7 +13,10 @@ services:
     network_mode: host
     command: ["/bin/bash"]
     working_dir: /home/vision/vision_ws
+    shm_size: 6g
+    runtime: nvidia
     environment:
+      - NVIDIA_VISIBLE_DEVICES=all
       - DISPLAY=${DISPLAY}
       - ROS_LOCALHOST_ONLY=0
       - ROS_DOMAIN_ID=0
@@ -22,11 +25,3 @@ services:
     volumes:
       - /dev:/dev
       - ../:/home/vision/vision_ws
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw  # for imshow
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]

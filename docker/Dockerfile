@@ -43,16 +43,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
         python3-colcon-common-extensions \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir --upgrade pip && \
-pip3 install --no-cache-dir --force-reinstall \
-    "numpy<2.0.0" \
-    "opencv-python<4.9.0.80"
-
-RUN pip3 install --no-deps --no-cache-dir \
-        ultralytics \
-        roboflow
-RUN pip3 install --no-cache-dir \
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ARG USERNAME=vision
 ARG USER_UID=1000
 
@@ -68,6 +58,11 @@ COPY --chown=$USERNAME:$USERNAME \
      modules/install_realsense.sh /tmp/install_realsense.sh
 RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
     /tmp/install_realsense.sh && rm /tmp/install_realsense.sh
+
+COPY --chown=$USERNAME:$USERNAME \
+     modules/install_ultralytics.sh /tmp/install_ultralytics.sh
+RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
+    /tmp/install_ultralytics.sh && rm /tmp/install_ultralytics.sh
 
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
     echo "source ~/vision_ws/install/setup.bash" >> ~/.bashrc
