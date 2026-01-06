@@ -80,6 +80,7 @@ class ImageCollector(Node):
         
         # 顯示畫面
         cv2.imshow('RealSense Collector', img)
+        cv2.waitKey(1)
 
         # 鍵盤監聽
         keyin = cv2.waitKey(1) & 0xFF

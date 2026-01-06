@@ -39,6 +39,9 @@ class CageDetector(Node):
         
             # 顯示畫面
             cv2.imshow("Eurobot 2026 - Hazelnut Detection", annotated_frame)
+            # HighGUI needs waitKey to update/handle window events.
+            # Without this, the window can appear stuck/frozen.
+            cv2.waitKey(1)
                 
         except Exception as e:
             self.get_logger().error(f"偵測發生錯誤: {e}")
