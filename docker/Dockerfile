@@ -38,8 +38,21 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
         ros-humble-rviz2 \
         ros-humble-tf2-geometry-msgs \
         ros-humble-tf2-eigen \
+        ros-humble-ament-cmake \
+        ros-humble-ament-cmake-core \
+        python3-colcon-common-extensions \
     && rm -rf /var/lib/apt/lists/*
 
+RUN pip3 install --no-cache-dir --upgrade pip && \
+pip3 install --no-cache-dir --force-reinstall \
+    "numpy<2.0.0" \
+    "opencv-python<4.9.0.80"
+
+RUN pip3 install --no-deps --no-cache-dir \
+        ultralytics \
+        roboflow
+RUN pip3 install --no-cache-dir \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ARG USERNAME=vision
 ARG USER_UID=1000
 
@@ -56,14 +69,8 @@ COPY --chown=$USERNAME:$USERNAME \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
     /tmp/install_realsense.sh && rm /tmp/install_realsense.sh
 
-RUN pip3 install --no-cache-dir --upgrade pip && \
-    pip3 install --no-cache-dir --force-reinstall \
-    "numpy<2.0.0" \
-    "opencv-python<4.9.0.80" \
-    "ultralytics" \
-    "roboflow" && \
-    pip3 install --no-cache-dir \
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
+    echo "source ~/vision_ws/install/setup.bash" >> ~/.bashrc
 
 ENTRYPOINT []
 CMD ["/bin/bash"]
