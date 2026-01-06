@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
       args:
         USER_UID: ${USER_UID:-1000}
-    image: eurobot-2026-vision:latest
+    image: wintera1233/vision:humble-numpy-opencv
     container_name: vision-ws
     stdin_open: true
     tty: true
@@ -23,10 +23,10 @@ services:
       - /dev:/dev
       - ../:/home/vision/vision_ws
       - /tmp/.X11-unix:/tmp/.X11-unix:rw  # for imshow
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
