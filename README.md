@@ -36,9 +36,3 @@ Save picture for yolo datasets
 ```bash
 ros2 run yolo save_aruco_training_data.py
 ```
-install specific version of numpy and opencv-python
-```bash
-sudo pip install --no-cache-dir --root-user-action=ignore --force-reinstall \
-    "numpy<2.0.0" \
-    "opencv-python<4.9.0.80"
-```

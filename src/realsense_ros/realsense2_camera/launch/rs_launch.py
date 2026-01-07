@@ -77,7 +77,7 @@ configurable_parameters = [{'name': 'camera_name',                  'default': '
                            {'name': 'pointcloud.stream_index_filter','default': '0', 'description': 'texture stream index for pointcloud'},
                            {'name': 'pointcloud.ordered_pc',        'default': 'false', 'description': ''},
                            {'name': 'pointcloud.allow_no_texture_points', 'default': 'false', 'description': "''"},
-                           {'name': 'align_depth.enable',           'default': 'false', 'description': 'enable align depth filter'},
+                           {'name': 'align_depth.enable',           'default': 'true', 'description': 'enable align depth filter'}, # for aligned_depth_to_color
                            {'name': 'colorizer.enable',             'default': 'false', 'description': 'enable colorizer filter'},
                            {'name': 'decimation_filter.enable',     'default': 'false', 'description': 'enable_decimation_filter'},
                            {'name': 'rotation_filter.enable',       'default': 'false', 'description': 'enable rotation_filter'},
@@ -145,7 +145,7 @@ def launch_map_transform_publisher_node(context: LaunchContext):
         package="tf2_ros",
         executable="static_transform_publisher",
         arguments=[
-            '1.735', '2.05', '1.4', '-1.5707963268', '0.7971975512', '-1.5707963268',
+            '1.735', '2.05', '1.4', '-1.5707963268', '0.7971975512', '-1.5707963268', # z調高了7cm
             'map',
             context.launch_configurations['camera_name'] + '_link'
         ]
