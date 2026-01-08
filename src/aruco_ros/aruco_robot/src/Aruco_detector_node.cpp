@@ -1,5 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include "sensor_msgs/msg/camera_info.hpp"
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
@@ -38,9 +39,10 @@ public:
         this->get_parameter("alpha_rotation", alpha_rot_);
 
         subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "/camera/camera/color/image_raw", 10,
+            "/camera/camera_cb/color/image_raw", 10,
             std::bind(&ArucoDetectorNode::image_callback, this, _1));
-
+        info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
+            "/camera/camera_cb/color/camera_info", 10, std::bind(&ArucoDetectorNode::camera_info_callback, this, _1));
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
         tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -63,14 +65,8 @@ public:
         detector_params_->minCornerDistanceRate = 0.03;
         detector_params_->minMarkerDistanceRate = 0.05;
 
-        // 相機內參
-        camera_matrix_ = (cv::Mat1d(3, 3) <<
-            916.026611328125, 0.0, 653.2020263671875,
-            0.0, 913.7075805664062, 366.0958251953125,
-            0.0, 0.0, 1.0);
-        dist_coeffs_ = cv::Mat::zeros(1, 5, CV_64F);
-
         has_prev_ = false;
+        RCLCPP_INFO(this->get_logger(), "Aruco Detector Node started.");
     }
 private:
     tf2::Quaternion slerp_quat(const tf2::Quaternion &q1_in, const tf2::Quaternion &q2_in, double t) {
@@ -111,8 +107,21 @@ private:
         return res;
     }
 
+    void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr info) {
+        camera_matrix_ = (cv::Mat_<double>(3,3) << 
+            info->k[0], info->k[1], info->k[2],
+            info->k[3], info->k[4], info->k[5],
+            info->k[6], info->k[7], info->k[8]);
+        dist_coeffs_ = cv::Mat(info->d).clone();
+        dist_coeffs_.convertTo(dist_coeffs_, CV_64F);
+    }
+
     void image_callback(const sensor_msgs::msg::Image::SharedPtr msg)
     {
+        if (camera_matrix_.empty() || camera_matrix_.at<double>(0,0) == 0) {
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000, "等待內參中");
+            return; 
+        }
         cv_bridge::CvImagePtr cv_ptr;
         try {
             cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
@@ -135,8 +144,8 @@ private:
         cv::aruco::detectMarkers(gray, dictionary_, corners, ids, detector_params_, rejected);
         if (ids.empty()) {
             RCLCPP_INFO(this->get_logger(), "no aruco");
-            cv::imshow("Aruco Detector", frame);
-            cv::waitKey(1);
+            // cv::imshow("Aruco Detector", frame);
+            // cv::waitKey(1);
             return;
         }
 
@@ -169,8 +178,8 @@ private:
 
         if (objectPoints.size() < 4) {
             RCLCPP_INFO(this->get_logger(), "Not enough corner points for PnP (%zu).", objectPoints.size());
-            cv::imshow("Aruco Detector", frame);
-            cv::waitKey(1);
+            // cv::imshow("Aruco Detector", frame);
+            // cv::waitKey(1);
             return;
         }
 
@@ -192,8 +201,8 @@ private:
             if (has_prev_) {
                 geometry_msgs::msg::TransformStamped out;
                 out.header.stamp = this->get_clock()->now();
-                out.header.frame_id = "world";
-                out.child_frame_id = "camera_link";
+                out.header.frame_id = "map";
+                out.child_frame_id = "camera_cb_link";
                 out.transform = tf2::toMsg(tf2::Transform(prev_q_, prev_t_));
                 tf_broadcaster_->sendTransform(out);
             }
@@ -211,7 +220,7 @@ private:
 
         try {
             auto tf_msg = tf_buffer_->lookupTransform(
-                "camera_link", "camera_color_optical_frame",
+                "camera_cb_link", "camera_cb_color_optical_frame",
                 tf2::TimePointZero
             );
             tf2::fromMsg(tf_msg.transform, T_clink_copt);
@@ -227,8 +236,8 @@ private:
             // 回傳前一幀
             geometry_msgs::msg::TransformStamped out;
             out.header.stamp = this->get_clock()->now();
-            out.header.frame_id = "world";
-            out.child_frame_id = "camera_link";
+            out.header.frame_id = "map";
+            out.child_frame_id = "camera_cb_link";
             out.transform = tf2::toMsg(tf2::Transform(prev_q_, prev_t_));
             tf_broadcaster_->sendTransform(out);
             return;
@@ -285,7 +294,7 @@ private:
         geometry_msgs::msg::TransformStamped out;
         out.header.stamp = this->get_clock()->now();
         out.header.frame_id = "map";
-        out.child_frame_id = "camera_link";
+        out.child_frame_id = "camera_cb_link";
         out.transform = tf2::toMsg(tf2::Transform(prev_q_, prev_t_));
         tf_broadcaster_->sendTransform(out);
 
@@ -300,12 +309,13 @@ private:
         //     prev_t_.x(), prev_t_.y(), prev_t_.z()
         // );
 
-        cv::imshow("Aruco Detection", frame);
-        cv::waitKey(1);
+        // cv::imshow("Aruco Detection", frame);
+        // cv::waitKey(1);
     }
 
     // members
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
+    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;

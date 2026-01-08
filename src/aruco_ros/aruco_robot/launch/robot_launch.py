@@ -41,9 +41,9 @@ def generate_launch_description():
         ]
     )
 
-    # --- 模式二： Robot 模式 (mode:=robot) ---
-    robot_group = GroupAction(
-        condition=LaunchConfigurationEquals('mode', 'robot'),
+    # --- 模式二： Test 模式 (mode:=test) ---
+    test_group = GroupAction(
+        condition=LaunchConfigurationEquals('mode', 'test'),
         actions=[
             Node(
                 package='aruco_robot',
@@ -75,9 +75,36 @@ def generate_launch_description():
         ]
     )
 
+    # --- 模式三： Robot 模式 (mode:=robot) ---
+    robot_group = GroupAction(
+        condition=LaunchConfigurationEquals('mode', 'robot'),
+        actions=[
+            Node(
+                package='aruco_robot',
+                executable='Aruco_detector_node',
+                name='Aruco_detector_node',
+                output='screen'
+            ),
+            Node(
+                package='aruco_robot',
+                executable='Robot_detector_node',
+                name='Robot_detector_node',
+                parameters=[config_path],
+                output='screen'
+            ),
+            Node(
+                package='aruco_robot',
+                executable='Robot_localizer_node',
+                name='Robot_localizer_node',
+                output='screen'
+            ),
+        ]
+    )
+
     return LaunchDescription([
         mode_arg,
         realsense_launch,
         calib_group,
+        test_group,
         robot_group,
     ])

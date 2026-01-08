@@ -17,17 +17,15 @@ source /opt/ros/humble/setup.bash
 colcon build
 source install/setup.bash
 ```
-### Launch realsense node
-Make sure the RealSense camera is connected via USB to your computer, then run:
+
+### Launch Robot detect node （For: 定位組）
 ```bash
-ros2 launch realsense2_camera rs_launch.py
+ros2 launch aruco_robot robot_launch.py
 ```
-### Run aruco detect node
+Problem: There is a 1-3cm error in pose in the X and Y directions. As for orientation, it has not been tested yet. As for location function, sometimes the screen flickers, causing it to fail to detect the location.
+Limit: Make sure that at least one of the four Arucos on the field is in the frame, and that the Aruco on the robot is also in the frame.
+
+### Launch Sima detect node （For: SIMA組）
 ```bash
-ros2 run aruco_ros aruco_detector_node
-```
-### Run rivz
-Open RViz to visualize camera images and TF frames:
-```bash
-ros2 run rviz2 rviz2
+ros2 launch aruco_sima sima_launch.py
 ```

@@ -30,6 +30,8 @@ public:
         // 4. 建立定時器
         timer_ = this->create_wall_timer(
             std::chrono::milliseconds(33), std::bind(&MarkerWorldLocalizer::timer_callback, this));
+
+        RCLCPP_INFO(this->get_logger(), "Robot Localizer Node started.");
     }
 
 private:

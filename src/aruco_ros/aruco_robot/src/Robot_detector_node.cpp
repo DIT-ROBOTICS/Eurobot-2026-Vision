@@ -39,9 +39,9 @@ public:
         // 2. 初始化通訊組件
         using std::placeholders::_1;
         image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "/camera/camera/color/image_raw", 10, std::bind(&RobotDetectorNode::image_callback, this, _1));
+            "/camera/camera_cb/color/image_raw", 10, std::bind(&RobotDetectorNode::image_callback, this, _1));
         info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-            "/camera/camera/color/camera_info", 10, std::bind(&RobotDetectorNode::camera_info_callback, this, _1));
+            "/camera/camera_cb/color/camera_info", 10, std::bind(&RobotDetectorNode::camera_info_callback, this, _1));
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
         // 4. 初始化 Aruco
@@ -139,8 +139,8 @@ private:
         cv::aruco::detectMarkers(cv_ptr->image, dictionary_, corners, ids, detector_params_);
         cv::aruco::drawDetectedMarkers(debug_frame, corners, ids, cv::Scalar(0, 255, 0));
         if (ids.empty()) {
-            cv::imshow("Robot Detector", debug_frame);
-            cv::waitKey(1);
+            // cv::imshow("Robot Detector", debug_frame);
+            // cv::waitKey(1);
             return;
         }
 
@@ -180,14 +180,14 @@ private:
                 }
             }
         }
-        cv::imshow("Robot Detector", debug_frame);
-        cv::waitKey(1);
+        // cv::imshow("Robot Detector", debug_frame);
+        // cv::waitKey(1);
     }
 
     void publish_filtered_tf(const MarkerState &state, int id, rclcpp::Time stamp, std::string frame_id) {
         geometry_msgs::msg::TransformStamped t;
         t.header.stamp = stamp;
-        t.header.frame_id = "camera_color_optical_frame";
+        t.header.frame_id = "camera_cb_color_optical_frame";
         t.child_frame_id = "robot_marker_" + std::to_string(id);
 
         t.transform.translation.x = state.tvec[0];

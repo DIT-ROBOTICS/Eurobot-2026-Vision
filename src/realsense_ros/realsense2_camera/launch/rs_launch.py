@@ -145,7 +145,7 @@ def launch_map_transform_publisher_node(context: LaunchContext):
         package="tf2_ros",
         executable="static_transform_publisher",
         arguments=[
-            '1.735', '2.05', '1.4', '-1.5707963268', '0.7971975512', '-1.5707963268',
+            '1.735', '2.09', '1.47', '-1.5707963268', '0.7971975512', '-1.5707963268',
             'map',
             context.launch_configurations['camera_name'] + '_link'
         ]
@@ -155,5 +155,5 @@ def launch_map_transform_publisher_node(context: LaunchContext):
 def generate_launch_description():
     return LaunchDescription(declare_configurable_parameters(configurable_parameters) + [
         OpaqueFunction(function=launch_setup, kwargs = {'params' : set_configurable_parameters(configurable_parameters)}),
-        OpaqueFunction(function=launch_map_transform_publisher_node)  # Uncomment to enable static transform publisher
+        # OpaqueFunction(function=launch_map_transform_publisher_node)  # Uncomment to enable static transform publisher
     ])
