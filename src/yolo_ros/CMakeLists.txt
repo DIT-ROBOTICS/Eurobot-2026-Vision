@@ -15,6 +15,7 @@ find_package(ament_cmake_python REQUIRED)
 install(PROGRAMS
   src/yolo_node.py
   src/save_aruco_training_data.py
+  src/save_depth_training_data.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
