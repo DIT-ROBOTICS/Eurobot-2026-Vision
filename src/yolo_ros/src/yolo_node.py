@@ -126,7 +126,7 @@ class HazelnutDetector(Node):
 
         depth = np.median(valid_depths) / 1000.0
 
-        self.get_logger().info(f"目標 {i} 深度: {depth:.2f} m")
+        # self.get_logger().info(f"目標 {i} 深度: {depth:.2f} m")
 
         fx = self.camera_intrinsics.k[0]
         fy = self.camera_intrinsics.k[4]
@@ -162,7 +162,7 @@ class HazelnutDetector(Node):
 
         depth = np.median(valid_depths) / 1000.0
 
-        self.get_logger().info(f"目標 {i} 深度: {depth:.2f} m")
+        # self.get_logger().info(f"目標 {i} 深度: {depth:.2f} m")
 
         fx = self.camera_intrinsics.k[0]
         fy = self.camera_intrinsics.k[4]
