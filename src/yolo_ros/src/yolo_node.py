@@ -25,7 +25,6 @@ class HazelnutDetector(Node):
         self.dep_sub = message_filters.Subscriber(self, Image, '/camera/camera_cb/aligned_depth_to_color/image_raw')
         self.pose_pub = self.create_publisher(PoseArray, 'hazelnut_poses', 10)
 
-        #設置一個陣列變數除存當前偵測到的榛果位姿
         self.hazelnut_poses = PoseArray()
         self.hazelnut_poses.header.frame_id = "camera_frame"
 
@@ -37,6 +36,7 @@ class HazelnutDetector(Node):
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
+        self.map_to_camera_tf = None
 
         self.camera_intrinsics = None
         self.target_height = 0.03
@@ -56,7 +56,7 @@ class HazelnutDetector(Node):
         if mode_str in self.mode_list:
             self.mode = self.mode_list.index(mode_str)
         else:
-            self.get_logger().error(f"初始模式 '{mode_str}' 無效，設為 {self.mode_list.index('obb_mix')}",)
+            self.get_logger().error(f"初始模式 '{mode_str}' 無效，設為 'obb_mix'",)
             self.mode = self.mode_list.index('obb_mix')
         self.add_on_set_parameters_callback(self.parameter_callback)
         self.get_logger().info(f"目前偵測模式: {self.mode}")
@@ -84,175 +84,147 @@ class HazelnutDetector(Node):
     def camera_info_callback(self, msg):
         self.camera_intrinsics = msg
 
-    def broadcast_hazelnut_tf(self, x, y, z, header, index):
-        t = TransformStamped()
-        t.header.stamp = header.stamp
-        t.header.frame_id = header.frame_id
-        t.child_frame_id = f"hazelnut_{index}"
-
-        t.transform.translation.x = x
-        t.transform.translation.y = y
-        t.transform.translation.z = z
-
-        t.transform.rotation.x = 0.0
-        t.transform.rotation.y = 0.0
-        t.transform.rotation.z = 0.0
-        t.transform.rotation.w = 1.0
-        self.tf_broadcaster.sendTransform(t)
-
+    def map_to_camera_lookup(self, header):
         try:
-            transform = self.tf_buffer.lookup_transform(
+            self.map_to_camera_tf = self.tf_buffer.lookup_transform(
                 "map",
                 header.frame_id,
-                header.stamp,
-                rclpy.duration.Duration(seconds=0.1)
+                rclpy.time.Time(),
+                rclpy.duration.Duration(seconds=1.0)
             )
-
-            p_in_cam = PoseStamped()
-            p_in_cam.pose.position.x = float(x)
-            p_in_cam.pose.position.y = float(y)
-            p_in_cam.pose.position.z = float(z)
-            p_in_cam.pose.orientation.w = 1.0
-
-            p_in_map = tf2_geometry_msgs.do_transform_pose(p_in_cam.pose, transform)
-
-            self.hazelnut_poses.poses.append(p_in_map)
-
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-            self.get_logger().error(f"無法將 hazelnut_{index} 轉換至 map 座標系: {e}")
+            self.get_logger().error(f"無法取得 map 到 camera 的轉換: {e}")
+
+    def broadcast_hazelnut_tf(self, pose_in_map, index):
+        t = TransformStamped()
+        t.header.stamp = self.hazelnut_poses.header.stamp
+        t.header.frame_id = "map" 
+        t.child_frame_id = f"hazelnut_{index}"
+
+        t.transform.translation.x = pose_in_map.position.x
+        t.transform.translation.y = pose_in_map.position.y
+        t.transform.translation.z = pose_in_map.position.z
+
+        t.transform.rotation = pose_in_map.orientation
+
+        self.tf_broadcaster.sendTransform(t)
+
+    def bb_to_tf(self, i, results):
+        xyxy = results.box.xyxy[0].cpu().numpy()
+        u = int((xyxy[0] + xyxy[2]) / 2)
+        v = int((xyxy[1] + xyxy[3]) / 2)
+
+        u_min, u_max = max(0, u-2), min(self.dep_img.shape[1], u+2)
+        v_min, v_max = max(0, v-2), min(self.dep_img.shape[0], v+2)
+        depth_roi = self.dep_img[v_min:v_max, u_min:u_max]
+
+        valid_depths = depth_roi[depth_roi > 0]
+
+        if valid_depths.size == 0:
+            self.get_logger().warning(f"目標 {i} 無有效深度資料，跳過。")
+            return None
+
+        depth = np.median(valid_depths) / 1000.0
+
+        self.get_logger().info(f"目標 {i} 深度: {depth:.2f} m")
+
+        fx = self.camera_intrinsics.k[0]
+        fy = self.camera_intrinsics.k[4]
+        cx = self.camera_intrinsics.k[2]
+        cy = self.camera_intrinsics.k[5]
+
+        z_cam = float(depth)
+        x_cam = (u - cx) * z_cam / fx
+        y_cam = (v - cy) * z_cam / fy
+
+        p_dep = PoseStamped()
+        p_dep.pose.position.x = float(x_cam)
+        p_dep.pose.position.y = float(y_cam)
+        p_dep.pose.position.z = float(z_cam)
+        p_dep.pose.orientation.w = 1.0
+
+        return tf2_geometry_msgs.do_transform_pose(p_dep.pose, self.map_to_camera_tf)
 
 
-    def bb_to_tf(self, results, rgb_msg):
-        for i, box in enumerate(results[0].boxes):
-            xyxy = box.xyxy[0].cpu().numpy()
-            u = int((xyxy[0] + xyxy[2]) / 2)
-            v = int((xyxy[1] + xyxy[3]) / 2)
+    def obb_to_tf(self, i, results):
+        obb = results.obb.xywhr[0].cpu().numpy()
+        u,v = int(obb[0]), int(obb[1])
 
-            u_min, u_max = max(0, u-2), min(self.dep_img.shape[1], u+2)
-            v_min, v_max = max(0, v-2), min(self.dep_img.shape[0], v+2)
-            depth_roi = self.dep_img[v_min:v_max, u_min:u_max]
+        u_min, u_max = max(0, u-2), min(self.dep_img.shape[1], u+2)
+        v_min, v_max = max(0, v-2), min(self.dep_img.shape[0], v+2)
+        depth_roi = self.dep_img[v_min:v_max, u_min:u_max]
 
-            valid_depths = depth_roi[depth_roi > 0]
-            if valid_depths.size == 0:
-                self.get_logger().warning(f"目標 {i} 無有效深度資料，跳過。")
-                continue
+        valid_depths = depth_roi[depth_roi > 0]
 
-            depth = np.median(valid_depths) / 1000.0
+        if valid_depths.size == 0:
+            self.get_logger().warning(f"目標 {i} 無有效深度資料，跳過。")
+            return None
 
-            self.get_logger().info(f"目標 {i} 深度: {depth:.2f} m")
+        depth = np.median(valid_depths) / 1000.0
 
-            fx = self.camera_intrinsics.k[0]
-            fy = self.camera_intrinsics.k[4]
-            cx = self.camera_intrinsics.k[2]
-            cy = self.camera_intrinsics.k[5]
+        self.get_logger().info(f"目標 {i} 深度: {depth:.2f} m")
 
-            z_cam = float(depth)
-            x_cam = (u - cx) * z_cam / fx
-            y_cam = (v - cy) * z_cam / fy
+        fx = self.camera_intrinsics.k[0]
+        fy = self.camera_intrinsics.k[4]
+        cx = self.camera_intrinsics.k[2]
+        cy = self.camera_intrinsics.k[5]
 
-            self.broadcast_hazelnut_tf(x_cam, y_cam, z_cam, rgb_msg.header, i)
+        z_cam = float(depth)
+        x_cam = (u - cx) * z_cam / fx
+        y_cam = (v - cy) * z_cam / fy
 
-    def obb_to_tf(self, results, rgb_msg):
-        for i, box in enumerate(results[0].obb):
-            obb = box.xywhr[0].cpu().numpy()
-            u,v = int(obb[0]), int(obb[1])
+        p_dep = PoseStamped()
+        p_dep.pose.position.x = float(x_cam)
+        p_dep.pose.position.y = float(y_cam)
+        p_dep.pose.position.z = float(z_cam)
+        p_dep.pose.orientation.w = 1.0
 
-            u_min, u_max = max(0, u-2), min(self.dep_img.shape[1], u+2)
-            v_min, v_max = max(0, v-2), min(self.dep_img.shape[0], v+2)
-            depth_roi = self.dep_img[v_min:v_max, u_min:u_max]
+        return tf2_geometry_msgs.do_transform_pose(p_dep.pose, self.map_to_camera_tf)
 
-            valid_depths = depth_roi[depth_roi > 0]
-            if valid_depths.size == 0:
-                self.get_logger().warning(f"目標 {i} 無有效深度資料，跳過。")
-                continue
+    def obb_pnp_to_tf(self,i, results):
 
-            depth = np.median(valid_depths) / 1000.0
+        image_points = results.obb.xyxyxyxy[0].cpu().numpy().astype(np.float32)
 
-            self.get_logger().info(f"目標 {i} 深度: {depth:.2f} m")
+        camera_matrix = np.array(self.camera_intrinsics.k).reshape(3, 3)
+        dist_coeffs = np.array(self.camera_intrinsics.d)
 
-            fx = self.camera_intrinsics.k[0]
-            fy = self.camera_intrinsics.k[4]
-            cx = self.camera_intrinsics.k[2]
-            cy = self.camera_intrinsics.k[5]
+        ret, rvec, tvec = cv2.solvePnP(self.aruco_points, image_points, camera_matrix, dist_coeffs)
 
-            z_cam = float(depth)
-            x_cam = (u - cx) * z_cam / fx
-            y_cam = (v - cy) * z_cam / fy
+        if not ret:
+            self.get_logger().warning(f"目標 {i} PnP 求解失敗，跳過。")
+            return None
 
-            self.broadcast_hazelnut_tf(x_cam, y_cam, z_cam, rgb_msg.header, i)
+        x_cam, y_cam, z_cam = tvec.flatten()
 
-    def obb_pnp_to_tf(self, results, rgb_msg):
-        for i, box in enumerate(results[0].obb):
-            image_points = box.xyxyxyxy[0].cpu().numpy().astype(np.float32)
+        p_pnp = PoseStamped()
+        p_pnp.pose.position.x = float(x_cam)
+        p_pnp.pose.position.y = float(y_cam)
+        p_pnp.pose.position.z = float(z_cam)
+        p_pnp.pose.orientation.w = 1.0
 
-            camera_matrix = np.array(self.camera_intrinsics.k).reshape(3, 3)
-            dist_coeffs = np.array(self.camera_intrinsics.d)
+        return tf2_geometry_msgs.do_transform_pose(p_pnp.pose, self.map_to_camera_tf)
 
-            ret, rvec, tvec = cv2.solvePnP(self.aruco_points, image_points, camera_matrix, dist_coeffs)
 
-            if not ret:
-                self.get_logger().warning(f"目標 {i} PnP 求解失敗，跳過。")
-                continue
+    def obb_mix_to_tf(self,i, results):
 
-            x_cam, y_cam, z_cam = tvec.flatten()
+        pose_map_dep = self.obb_to_tf(i, results)
+        pose_map_pnp = self.obb_pnp_to_tf(i, results)
 
-            self.broadcast_hazelnut_tf(x_cam, y_cam, z_cam, rgb_msg.header, i)
+        mixed_pose_map = Pose()
+        mixed_pose_map.position.x = (pose_map_dep.position.x + pose_map_pnp.position.x) / 2.0
+        mixed_pose_map.position.y = (pose_map_dep.position.y + pose_map_pnp.position.y) / 2.0
+        mixed_pose_map.position.z = (pose_map_dep.position.z + pose_map_pnp.position.z) / 2.0
+        mixed_pose_map.orientation.w = 1.0
 
-    def obb_mix_to_tf(self, results, rgb_msg):
-        for i, box in enumerate(results[0].obb):
-
-            # pnp part
-            image_points = box.xyxyxyxy[0].cpu().numpy().astype(np.float32)
-
-            camera_matrix = np.array(self.camera_intrinsics.k).reshape(3, 3)
-            dist_coeffs = np.array(self.camera_intrinsics.d)
-
-            ret, rvec, tvec = cv2.solvePnP(self.aruco_points, image_points, camera_matrix, dist_coeffs)
-
-            if not ret:
-                self.get_logger().warning(f"目標 {i} PnP 求解失敗，跳過。")
-                continue
-
-            x_cam_pnp, y_cam_pnp, z_cam_pnp = tvec.flatten()
-
-            # depth part
-            obb = box.xywhr[0].cpu().numpy()
-            u,v = int(obb[0]), int(obb[1])
-
-            u_min, u_max = max(0, u-2), min(self.dep_img.shape[1], u+2)
-            v_min, v_max = max(0, v-2), min(self.dep_img.shape[0], v+2)
-            depth_roi = self.dep_img[v_min:v_max, u_min:u_max]
-
-            valid_depths = depth_roi[depth_roi > 0]
-            if valid_depths.size == 0:
-                self.get_logger().warning(f"目標 {i} 無有效深度資料，跳過。")
-                continue
-
-            depth = np.median(valid_depths) / 1000.0
-
-            self.get_logger().info(f"目標 {i} 深度: {depth:.2f} m")
-
-            fx = self.camera_intrinsics.k[0]
-            fy = self.camera_intrinsics.k[4]
-            cx = self.camera_intrinsics.k[2]
-            cy = self.camera_intrinsics.k[5]
-
-            z_cam_dep = float(depth)
-            x_cam_dep = (u - cx) * z_cam_dep / fx
-            y_cam_dep = (v - cy) * z_cam_dep / fy
-
-            x_cam = (x_cam_pnp + x_cam_dep) / 2.0
-            y_cam = (y_cam_pnp + y_cam_dep) / 2.0
-            z_cam = (z_cam_pnp + z_cam_dep) / 2.0
-
-            self.broadcast_hazelnut_tf(x_cam, y_cam, z_cam, rgb_msg.header, i)
-
+        return mixed_pose_map
 
     def image_callback(self, rgb_msg, dep_msg):
         if self.camera_intrinsics is None:
             self.get_logger().warning("尚未收到相機內參資訊，無法進行偵測。")
             return
         try:
+            self.map_to_camera_lookup(rgb_msg.header)
+
             self.hazelnut_poses.poses = []
             self.hazelnut_poses.header.frame_id = "map" 
             self.hazelnut_poses.header.stamp = rgb_msg.header.stamp
@@ -264,7 +236,15 @@ class HazelnutDetector(Node):
             image = cv2.merge([gray_image, gray_image, gray_image])
             results = self.model(image, conf=0.75, verbose=False, device=0)
 
-            self.func_list[self.mode](results, rgb_msg)
+            for i, results in enumerate(results[0]):
+                res = self.func_list[self.mode](i, results)
+                if res is None:
+                    continue
+                pose_in_map = res
+
+                self.broadcast_hazelnut_tf(pose_in_map, i)
+
+                self.hazelnut_poses.poses.append(pose_in_map)
 
             self.pose_pub.publish(self.hazelnut_poses)
 
