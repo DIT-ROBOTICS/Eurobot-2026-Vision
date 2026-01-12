@@ -36,3 +36,12 @@ Save picture for yolo datasets
 ```bash
 ros2 run yolo save_aruco_training_data.py
 ```
+### Launch hazelnut detect
+```bash
+ros2 launch yolo hazelnut_detect_launch.py
+```
+### Set detect mode
+```bash
+ros2 param set /yolo_node mode "obb_mix"
+```
+mode:['bb', 'obb_dep', 'obb_pnp', 'obb_mix']

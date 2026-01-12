@@ -12,7 +12,13 @@ find_package(ament_cmake_python REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
-install(PROGRAMS
+install(
+  DIRECTORY launch config
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(
+  PROGRAMS
   src/yolo_node.py
   src/save_aruco_training_data.py
   src/save_depth_training_data.py

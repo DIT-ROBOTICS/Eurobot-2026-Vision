@@ -32,6 +32,7 @@ class HazelnutDetector(Node):
         self.dep_img = None
 
         self.bridge = CvBridge()
+        self.annotated_frame = None
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
@@ -47,6 +48,22 @@ class HazelnutDetector(Node):
             [ 0.02,  0.02, 0],
             [-0.02,  0.02, 0]
         ], dtype=np.float32)
+
+        self.fixed_marker_ids = np.array([20, 21, 22, 23])
+        self.fixed_marker_positions = np.array([
+            [0.6, 1.4, 0.0],
+            [2.4, 1.4, 0.0],
+            [0.6, 0.6, 0.0],
+            [2.4, 0.6, 0.0],
+        ], dtype=np.float32)
+        self.fixed_marker_idx = -1
+
+        self.aruco_dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_100)
+        self.aruco_params = cv2.aruco.DetectorParameters()
+        self.aruco_detector = cv2.aruco.ArucoDetector(self.aruco_dictionary, self.aruco_params)
+
+        self.use_fixed_aruco = False
+        self.p_fixed_aruco = None
 
         self.mode_list = ['bb', 'obb_dep', 'obb_pnp', 'obb_mix']
         self.func_list = [self.bb_to_tf, self.obb_to_tf, self.obb_pnp_to_tf, self.obb_mix_to_tf]
@@ -83,6 +100,10 @@ class HazelnutDetector(Node):
 
     def camera_info_callback(self, msg):
         self.camera_intrinsics = msg
+        if self.camera_intrinsics is not None:
+            self.destroy_subscription(self.camera_info_subscription)
+            self.camera_info_subscription = None
+            self.get_logger().info("已接收相機內參資訊，停止訂閱 CameraInfo。")
 
     def map_to_camera_lookup(self, header):
         try:
@@ -108,6 +129,57 @@ class HazelnutDetector(Node):
         t.transform.rotation = pose_in_map.orientation
 
         self.tf_broadcaster.sendTransform(t)
+
+    # def calculate_final_pose(self, p_cam):
+    #     p_tag_map = self.fixed_marker_positions[self.fixed_marker_idx]
+    #     t_tag_cam = np.array([
+    #         self.p_fixed_aruco.pose.position.x,
+    #         self.p_fixed_aruco.pose.position.y,
+    #         self.p_fixed_aruco.pose.position.z
+    #     ])
+    #     t_nut_cam = np.array([
+    #         p_cam.pose.position.x,
+    #         p_cam.pose.position.y,
+    #         p_cam.pose.position.z
+    #     ])
+    #     relative_vector = t_nut_cam - t_tag_cam
+    #     pos_final = p_tag_map + relative_vector
+
+    #     final_pose = Pose()
+    #     final_pose.position.x = float(pos_final[0])
+    #     final_pose.position.y = float(pos_final[1])
+    #     final_pose.position.z = float(pos_final[2])
+    #     final_pose.orientation.w = 1.0
+    #     return final_pose
+
+    def calculate_final_pose(self, p_cam):
+        try:
+            p_nut_map_tf = tf2_geometry_msgs.do_transform_pose(p_cam.pose, self.map_to_camera_tf)
+        except Exception as e:
+            self.get_logger().error(f"無法轉換 Hazelnut TF: {e}")
+            return Pose()
+
+        if self.use_fixed_aruco and self.p_fixed_aruco is not None:
+            try:
+                p_aruco_map_tf = tf2_geometry_msgs.do_transform_pose(self.p_fixed_aruco.pose, self.map_to_camera_tf)
+                
+                actual_aruco_pos = self.fixed_marker_positions[self.fixed_marker_idx]
+
+                offset_x = actual_aruco_pos[0] - p_aruco_map_tf.position.x
+                offset_y = actual_aruco_pos[1] - p_aruco_map_tf.position.y
+                
+                final_pose = Pose()
+                final_pose.position.x = p_nut_map_tf.position.x + offset_x
+                final_pose.position.y = p_nut_map_tf.position.y + offset_y
+                final_pose.position.z = 0.03  
+                final_pose.orientation.w = 1.0
+                
+                return final_pose
+            except Exception as e:
+                self.get_logger().warn(f"補償計算失敗: {e}")
+                return p_nut_map_tf
+            
+        return p_nut_map_tf
 
     def bb_to_tf(self, i, results):
         xyxy = results.box.xyxy[0].cpu().numpy()
@@ -143,7 +215,10 @@ class HazelnutDetector(Node):
         p_dep.pose.position.z = float(z_cam)
         p_dep.pose.orientation.w = 1.0
 
-        return tf2_geometry_msgs.do_transform_pose(p_dep.pose, self.map_to_camera_tf)
+        if self.use_fixed_aruco and self.p_fixed_aruco is not None:
+            return self.calculate_final_pose(p_dep)
+        else:
+            return tf2_geometry_msgs.do_transform_pose(p_dep.pose, self.map_to_camera_tf)
 
 
     def obb_to_tf(self, i, results):
@@ -179,7 +254,10 @@ class HazelnutDetector(Node):
         p_dep.pose.position.z = float(z_cam)
         p_dep.pose.orientation.w = 1.0
 
-        return tf2_geometry_msgs.do_transform_pose(p_dep.pose, self.map_to_camera_tf)
+        if self.use_fixed_aruco and self.p_fixed_aruco is not None:
+            return self.calculate_final_pose(p_dep)
+        else:
+            return tf2_geometry_msgs.do_transform_pose(p_dep.pose, self.map_to_camera_tf)
 
     def obb_pnp_to_tf(self,i, results):
 
@@ -201,8 +279,11 @@ class HazelnutDetector(Node):
         p_pnp.pose.position.y = float(y_cam)
         p_pnp.pose.position.z = float(z_cam)
         p_pnp.pose.orientation.w = 1.0
-
-        return tf2_geometry_msgs.do_transform_pose(p_pnp.pose, self.map_to_camera_tf)
+        
+        if self.use_fixed_aruco and self.p_fixed_aruco is not None:
+            return self.calculate_final_pose(p_pnp)
+        else:
+            return tf2_geometry_msgs.do_transform_pose(p_pnp.pose, self.map_to_camera_tf)
 
 
     def obb_mix_to_tf(self,i, results):
@@ -217,6 +298,40 @@ class HazelnutDetector(Node):
         mixed_pose_map.orientation.w = 1.0
 
         return mixed_pose_map
+    
+    def find_fixed_marker(self, gray_img):
+        gray_img = cv2.createCLAHE(3.0).apply(gray_img)
+        gray_img = cv2.GaussianBlur(gray_img, (3, 3), 0)
+        corners, ids, rejected = self.aruco_detector.detectMarkers(gray_img)
+        if ids is not None:
+            ids_flat = ids.flatten()
+            for i, marker_id in enumerate(ids_flat):
+                if(marker_id in self.fixed_marker_ids):
+                    img_pts = corners[i].astype(np.float32)
+                    cv2.aruco.drawDetectedMarkers(self.annotated_frame, [corners[i]], np.array(marker_id).reshape(-1, 1), (0, 255, 0))
+                    self.fixed_marker_idx = np.where(self.fixed_marker_ids == marker_id)[0][0]
+                    h = 0.05
+                    local_pts = np.array([
+                        [-h,  h, 0],
+                        [ h,  h, 0],
+                        [ h, -h, 0],
+                        [-h, -h, 0]  
+                    ], dtype=np.float32)
+                    camera_matrix = np.array(self.camera_intrinsics.k).reshape(3, 3)
+                    dist_coeffs = np.array(self.camera_intrinsics.d)
+                    ret, rvec, tvec = cv2.solvePnP(local_pts, img_pts, camera_matrix, dist_coeffs)
+                    if not ret:
+                        self.get_logger().warning(f"ID {marker_id} PnP 求解失敗，改使用相機 frame")
+                        return None
+                    x_cam, y_cam, z_cam = tvec.flatten()
+                    p_pnp = PoseStamped()
+                    p_pnp.pose.position.x = float(x_cam)
+                    p_pnp.pose.position.y = float(y_cam)
+                    p_pnp.pose.position.z = float(z_cam)
+                    p_pnp.pose.orientation.w = 1.0
+                    self.use_fixed_aruco = True
+                    return p_pnp
+        return None
 
     def image_callback(self, rgb_msg, dep_msg):
         if self.camera_intrinsics is None:
@@ -225,6 +340,9 @@ class HazelnutDetector(Node):
         try:
             self.map_to_camera_lookup(rgb_msg.header)
 
+            self.fixed_marker_idx = -1
+            self.use_fixed_aruco = False
+            
             self.hazelnut_poses.poses = []
             self.hazelnut_poses.header.frame_id = "map" 
             self.hazelnut_poses.header.stamp = rgb_msg.header.stamp
@@ -235,6 +353,9 @@ class HazelnutDetector(Node):
             gray_image = cv2.cvtColor(self.rgb_img, cv2.COLOR_BGR2GRAY)
             image = cv2.merge([gray_image, gray_image, gray_image])
             results = self.model(image, conf=0.75, verbose=False, device=0)
+            self.annotated_frame = results[0].plot(labels=False, conf=True)
+
+            self.p_fixed_aruco = self.find_fixed_marker(gray_image)
 
             for i, results in enumerate(results[0]):
                 res = self.func_list[self.mode](i, results)
@@ -248,8 +369,9 @@ class HazelnutDetector(Node):
 
             self.pose_pub.publish(self.hazelnut_poses)
 
-            annotated_frame = results[0].plot(labels=False, conf=True)
-            cv2.imshow("Eurobot 2026 - Hazelnut Detection", annotated_frame)
+            status_text = f"Mode: {self.mode_list[self.mode]} | ArUco: {'LOCKED' if self.use_fixed_aruco else 'LOST'}"
+            cv2.putText(self.annotated_frame, status_text, (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            cv2.imshow("Eurobot 2026 - Hazelnut Detection", self.annotated_frame)
             cv2.waitKey(1)
                 
         except Exception as e:
