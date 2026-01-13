@@ -37,6 +37,7 @@ Save picture for yolo datasets
 ros2 run yolo save_aruco_training_data.py
 ```
 ### Launch hazelnut detect
+include rviz2
 ```bash
 ros2 launch yolo hazelnut_detect_launch.py
 ```
