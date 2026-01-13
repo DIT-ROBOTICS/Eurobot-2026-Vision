@@ -23,7 +23,7 @@ public:
         pantry_regions_ = process_raw_areas(raw_pantry);
 
         subscription_ = this->create_subscription<geometry_msgs::msg::PoseArray>(
-            "hazelnuts_pose", 10, std::bind(&PresenceDetectionNode::pose_callback, this, _1));
+            "hazelnut_poses", 10, std::bind(&PresenceDetectionNode::pose_callback, this, _1));
 
         collection_pub_ = this->create_publisher<std_msgs::msg::Int16MultiArray>("collection_status", 10);
         pantry_pub_ = this->create_publisher<std_msgs::msg::Int16MultiArray>("pantry_status", 10);
@@ -71,15 +71,15 @@ private:
 
         collection_pub_->publish(col_msg);
         pantry_pub_->publish(pan_msg);
-        RCLCPP_INFO(this->get_logger(), "Published occupancy status.");
-        RCLCPP_INFO(this->get_logger(), "Collection status:");
-        for (const auto& status : col_msg.data) {
-            RCLCPP_INFO(this->get_logger(), "%d", status);  
-        }
-        RCLCPP_INFO(this->get_logger(), "Pantry status:");
-        for (const auto& status : pan_msg.data) {
-            RCLCPP_INFO(this->get_logger(), "%d", status);  
-        }
+        // RCLCPP_INFO(this->get_logger(), "Published occupancy status.");
+        // RCLCPP_INFO(this->get_logger(), "Collection status:");
+        // for (const auto& status : col_msg.data) {
+        //     RCLCPP_INFO(this->get_logger(), "%d", status);  
+        // }
+        // RCLCPP_INFO(this->get_logger(), "Pantry status:");
+        // for (const auto& status : pan_msg.data) {
+        //     RCLCPP_INFO(this->get_logger(), "%d", status);  
+        // }
     }
 
     rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr subscription_;

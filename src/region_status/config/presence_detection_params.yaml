@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     # boundary inflation (meters)
-    region_inflation: 0.1
+    region_inflation: 0.075
 
     # Collection =
     collection_area: [
