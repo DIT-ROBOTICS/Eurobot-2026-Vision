@@ -17,6 +17,13 @@ source /opt/ros/humble/setup.bash
 colcon build
 source install/setup.bash
 ```
+#### ADD: region_status 
+**Configuration (config/presence_detection_params.yaml)**
+Each region is defined by 4 values: [min_x, max_x, min_y, max_y]
+### Launch region_status detection node
+```bash
+ros2 launch region_status presence_detection_launch.py
+```
 ### Launch realsense node
 Make sure the RealSense camera is connected via USB to your computer, then run:
 ```bash
