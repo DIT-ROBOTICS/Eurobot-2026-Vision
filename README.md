@@ -17,15 +17,22 @@ source /opt/ros/humble/setup.bash
 colcon build
 source install/setup.bash
 ```
+## Realsense
 ### Launch realsense node
 Make sure the RealSense camera is connected via USB to your computer, then run:
 ```bash
 ros2 launch realsense2_camera rs_launch.py
 ```
-### Run aruco detect node
+## Aruco
+### Run aruco detection for robot
 ```bash
-ros2 run aruco_ros aruco_detector_node
+ros2 run aruco_robot robot_detector
 ```
+### Run aruco detection for sima
+```bash
+ros2 run aruco_sima sima_detector
+```
+## GUI
 ### Run rivz
 Open RViz to visualize camera images and TF frames:
 ```bash

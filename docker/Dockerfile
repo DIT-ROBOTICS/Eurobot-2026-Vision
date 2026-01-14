@@ -38,6 +38,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
         ros-humble-rviz2 \
         ros-humble-tf2-geometry-msgs \
         ros-humble-tf2-eigen \
+        ros-humble-ament-cmake \
+        ros-humble-ament-cmake-core \
+        ros-humble-diagnostic-updater \
+        python3-colcon-common-extensions \
     && rm -rf /var/lib/apt/lists/*
 
 ARG USERNAME=vision
@@ -51,10 +55,20 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
 
 USER $USERNAME
 
+ARG REALSENSE=""
 COPY --chown=$USERNAME:$USERNAME \
      modules/install_realsense.sh /tmp/install_realsense.sh
 RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
     /tmp/install_realsense.sh && rm /tmp/install_realsense.sh
+
+ARG ULTRALYTICS=""
+COPY --chown=$USERNAME:$USERNAME \
+     modules/install_ultralytics.sh /tmp/install_ultralytics.sh
+RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
+    /tmp/install_ultralytics.sh && rm /tmp/install_ultralytics.sh
+
+RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
+    echo "source ~/vision_ws/install/setup.bash" >> ~/.bashrc
 
 ENTRYPOINT []
 CMD ["/bin/bash"]
