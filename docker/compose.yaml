@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
       args:
         USER_UID: ${USER_UID:-1000}
+        REALSENSE: "YES"
+        ULTRALYTICS: "YES"
     image: eurobot-2026-vision:latest
     container_name: vision-ws
     stdin_open: true
