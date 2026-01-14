@@ -40,6 +40,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
         ros-humble-tf2-eigen \
         ros-humble-ament-cmake \
         ros-humble-ament-cmake-core \
+        ros-humble-diagnostic-updater \
         python3-colcon-common-extensions \
     && rm -rf /var/lib/apt/lists/*
 
