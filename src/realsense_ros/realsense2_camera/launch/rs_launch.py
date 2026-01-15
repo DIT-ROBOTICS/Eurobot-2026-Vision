@@ -155,5 +155,5 @@ def launch_map_transform_publisher_node(context: LaunchContext):
 def generate_launch_description():
     return LaunchDescription(declare_configurable_parameters(configurable_parameters) + [
         OpaqueFunction(function=launch_setup, kwargs = {'params' : set_configurable_parameters(configurable_parameters)}),
-        OpaqueFunction(function=launch_map_transform_publisher_node)  # Uncomment to enable static transform publisher
+        # OpaqueFunction(function=launch_map_transform_publisher_node)  # Uncomment to enable static transform publisher
     ])
