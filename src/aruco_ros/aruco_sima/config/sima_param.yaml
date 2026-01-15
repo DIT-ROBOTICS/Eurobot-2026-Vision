@@ -1,3 +1,8 @@
+Aruco_detector_node:
+  ros__parameters:
+    marker_size: 0.1
+    alpha_trans_: 0.2
+    alpha_rot_: 0.2
 Sima_detector_node:
   ros__parameters:
     camera_matrix: [916.026611328125, 0.0, 653.2020263671875,
@@ -5,4 +10,4 @@ Sima_detector_node:
                     0.0, 0.0, 1.0]
     dist_coeffs: [0.0, 0.0, 0.0, 0.0, 0.0]
     tag_size: 0.08
-    filter_alpha: 0.25
+    filter_alpha: 0.15

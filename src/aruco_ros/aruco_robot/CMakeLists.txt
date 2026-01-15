@@ -47,12 +47,17 @@ add_executable(Robot_localizer_node src/Robot_localizer_node.cpp)
 ament_target_dependencies(Robot_localizer_node ${ROS_DEPS})
 target_link_libraries(Robot_localizer_node ${OpenCV_LIBS})
 
+add_executable(Relative_detector_node src/Relative_detector_node.cpp)
+ament_target_dependencies(Relative_detector_node ${ROS_DEPS})
+target_link_libraries(Relative_detector_node ${OpenCV_LIBS})
+
 # 5. 安裝與打包
 install(TARGETS
   Aruco_detector_node
   Camera_calibrator_node
   Robot_detector_node
   Robot_localizer_node
+  Relative_detector_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch config

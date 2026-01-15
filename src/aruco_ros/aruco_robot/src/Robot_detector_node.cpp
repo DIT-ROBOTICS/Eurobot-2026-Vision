@@ -36,12 +36,16 @@ public:
         auto raw_ids = this->get_parameter("robot_ids").as_integer_array();
         target_ids_.assign(raw_ids.begin(), raw_ids.end());
 
+        this->declare_parameter("cam_name", "cam_mid");
+        cam_name_id_ = this->get_parameter("cam_name").as_string();
+        camera_name_prefix_ = "/camera_cb/" + cam_name_id_;
+
         // 2. 初始化通訊組件
         using std::placeholders::_1;
         image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "/camera/camera_cb/color/image_raw", 10, std::bind(&RobotDetectorNode::image_callback, this, _1));
+            camera_name_prefix_ + "/color/image_raw", 10, std::bind(&RobotDetectorNode::image_callback, this, _1));
         info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-            "/camera/camera_cb/color/camera_info", 10, std::bind(&RobotDetectorNode::camera_info_callback, this, _1));
+            camera_name_prefix_ + "/color/camera_info", 10, std::bind(&RobotDetectorNode::camera_info_callback, this, _1));
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
         // 4. 初始化 Aruco
@@ -135,14 +139,14 @@ private:
         cv::Mat debug_frame = cv_ptr->image.clone();
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f>> corners;
-        
         cv::aruco::detectMarkers(cv_ptr->image, dictionary_, corners, ids, detector_params_);
-        cv::aruco::drawDetectedMarkers(debug_frame, corners, ids, cv::Scalar(0, 255, 0));
-        if (ids.empty()) {
-            // cv::imshow("Robot Detector", debug_frame);
-            // cv::waitKey(1);
-            return;
-        }
+
+        // cv::aruco::drawDetectedMarkers(debug_frame, corners, ids, cv::Scalar(0, 255, 0));
+        // if (ids.empty()) {
+        //     cv::imshow("Robot Detector", debug_frame);
+        //     cv::waitKey(1);
+        //     return;
+        // }
 
         // 定義 3D 空間中 Marker 的四個角點座標
         std::vector<cv::Point3f> objPoints = {
@@ -176,7 +180,7 @@ private:
                         filter_states_[id].q = slerp_quat(filter_states_[id].q, q_current, filter_alpha_);
                     }
                     publish_filtered_tf(filter_states_[id], id, msg->header.stamp, msg->header.frame_id);
-                    cv::drawFrameAxes(debug_frame, cam_matrix_, dist_coeffs_, rvec, tvec, marker_size_ * 0.5f);
+                    // cv::drawFrameAxes(debug_frame, cam_matrix_, dist_coeffs_, rvec, tvec, marker_size_ * 0.5f);
                 }
             }
         }
@@ -187,13 +191,12 @@ private:
     void publish_filtered_tf(const MarkerState &state, int id, rclcpp::Time stamp, std::string frame_id) {
         geometry_msgs::msg::TransformStamped t;
         t.header.stamp = stamp;
-        t.header.frame_id = "camera_cb_color_optical_frame";
+        t.header.frame_id = cam_name_id_ + "_color_optical_frame";
         t.child_frame_id = "robot_marker_" + std::to_string(id);
 
         t.transform.translation.x = state.tvec[0];
         t.transform.translation.y = state.tvec[1];
         t.transform.translation.z = state.tvec[2];
-
         t.transform.rotation.x = state.q.x();
         t.transform.rotation.y = state.q.y();
         t.transform.rotation.z = state.q.z();
@@ -209,6 +212,8 @@ private:
     cv::Ptr<cv::aruco::DetectorParameters> detector_params_;
     
     cv::Mat cam_matrix_, dist_coeffs_;
+    std::string cam_name_id_;
+    std::string camera_name_prefix_;
     std::vector<int> target_ids_;
     double marker_size_;
     double filter_alpha_;

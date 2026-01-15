@@ -22,13 +22,44 @@ def generate_launch_description():
     )
 
     # 4. RealSense Launch 檔
-    realsense_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(realsense_path)
-        # 如果需要傳參數給 RealSense (例如降低解析度或 FPS)，可以在這裡加
-        # launch_arguments={'depth_module.profile': '640x480x30'}.items(),
+    # realsense_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource(realsense_path)
+    #     # 如果需要傳參數給 RealSense (例如降低解析度或 FPS)，可以在這裡加
+    #     # launch_arguments={'depth_module.profile': '640x480x30'}.items(),
+    # )
+
+    # 5. 包裝多個相機成一個group
+    camera_names = ['cam_left', 'cam_mid', 'cam_right']
+    robot_actions = []
+    for cam in camera_names:
+        robot_actions.append(
+            Node(
+                package='aruco_robot',
+                executable='Aruco_detector_node',
+                name=f'Aruco_detector_{cam}',
+                parameters=[config_path, {'cam_name': cam}],
+                output='screen'
+            )
+        )
+        robot_actions.append(
+            Node(
+                package='aruco_robot',
+                executable='Robot_detector_node',
+                name=f'Robot_detector_{cam}',
+                parameters=[config_path, {'cam_name': cam}],
+                output='screen'
+            )
+        )
+    robot_actions.append(
+        Node(
+            package='aruco_robot',
+            executable='Robot_localizer_node',
+            name='Robot_localizer_node',
+            output='screen'
+        )
     )
 
-    # --- 模式一：校正模式 (mode:=cal) ---
+    # --- 模式一： 校正模式 (mode:=cal) ---
     calib_group = GroupAction(
         condition=LaunchConfigurationEquals('mode', 'cal'),
         actions=[
@@ -41,21 +72,22 @@ def generate_launch_description():
         ]
     )
 
-    # --- 模式二： Test 模式 (mode:=test) ---
-    test_group = GroupAction(
-        condition=LaunchConfigurationEquals('mode', 'test'),
+    # --- 模式二： Test1 模式 (mode:=test1) ---
+    test1_group = GroupAction(
+        condition=LaunchConfigurationEquals('mode', 'test1'),
         actions=[
             Node(
                 package='aruco_robot',
                 executable='Aruco_detector_node',
                 name='Aruco_detector_node',
+                parameters=[config_path, {'cam_name': camera_cb}],
                 output='screen'
             ),
             Node(
                 package='aruco_robot',
                 executable='Robot_detector_node',
                 name='Robot_detector_node',
-                parameters=[config_path],
+                parameters=[config_path, {'cam_name': camera_cb}],
                 output='screen'
             ),
             Node(
@@ -69,27 +101,19 @@ def generate_launch_description():
                 executable='rviz2',
                 name='rviz2',
                 output='screen'
-                # 如果你有預設的 .rviz 設定檔，可以取消下面這行的註解
-                # arguments=['-d', os.path.join(pkg_aruco_ros, 'rviz', 'aruco_config.rviz')]
             ),
         ]
     )
 
-    # --- 模式三： Robot 模式 (mode:=robot) ---
-    robot_group = GroupAction(
-        condition=LaunchConfigurationEquals('mode', 'robot'),
+    # --- 模式三： Test2 模式 (mode:=test2) ---
+    test2_group = GroupAction(
+        condition=LaunchConfigurationEquals('mode', 'test2'),
         actions=[
             Node(
                 package='aruco_robot',
-                executable='Aruco_detector_node',
-                name='Aruco_detector_node',
-                output='screen'
-            ),
-            Node(
-                package='aruco_robot',
-                executable='Robot_detector_node',
-                name='Robot_detector_node',
-                parameters=[config_path],
+                executable='Relative_detector_node',
+                name='Relative_detector_node',
+                parameters=[config_path, {'cam_name': camera_cb}],
                 output='screen'
             ),
             Node(
@@ -98,13 +122,26 @@ def generate_launch_description():
                 name='Robot_localizer_node',
                 output='screen'
             ),
+            Node(
+                package='rviz2',
+                executable='rviz2',
+                name='rviz2',
+                output='screen'
+            ),
         ]
+    )
+
+    # --- 模式四： Robot 模式 (mode:=robot) ---
+    robot_group = GroupAction(
+        condition=LaunchConfigurationEquals('mode', 'robot'),
+        actions=robot_actions
     )
 
     return LaunchDescription([
         mode_arg,
-        realsense_launch,
+        # realsense_launch,
         calib_group,
-        test_group,
+        test1_group,
+        test2_group,
         robot_group,
     ])

@@ -23,6 +23,7 @@ source install/setup.bash
 ros2 launch aruco_robot robot_launch.py
 ```
 Problem: There is a 1-3cm error in pose in the X and Y directions. As for orientation, it has not been tested yet. As for location function, sometimes the screen flickers, causing it to fail to detect the location.
+
 Limit: Make sure that at least one of the four Arucos on the field is in the frame, and that the Aruco on the robot is also in the frame.
 
 ### Launch Sima detect node （For: SIMA組）

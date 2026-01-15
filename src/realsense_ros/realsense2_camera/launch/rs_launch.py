@@ -145,7 +145,7 @@ def launch_map_transform_publisher_node(context: LaunchContext):
         package="tf2_ros",
         executable="static_transform_publisher",
         arguments=[
-            '1.735', '2.09', '1.47', '-1.5707963268', '0.7971975512', '-1.5707963268',
+            '1.735', '2.075', '1.47', '-1.5707963268', '1.047', '-1.5707963268',
             'map',
             context.launch_configurations['camera_name'] + '_link'
         ]

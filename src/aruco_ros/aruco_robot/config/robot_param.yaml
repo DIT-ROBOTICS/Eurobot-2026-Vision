@@ -1,3 +1,8 @@
+Aruco_detector_node:
+  ros__parameters:
+    alpha_trans_: 0.2
+    alpha_rot_: 0.2
+    marker_size: 0.1
 Robot_detector_node:
   ros__parameters:
     camera_matrix: [916.026611328125, 0.0, 653.2020263671875,
@@ -5,5 +10,13 @@ Robot_detector_node:
                     0.0, 0.0, 1.0]
     dist_coeffs: [0.0, 0.0, 0.0, 0.0, 0.0]
     marker_size: 0.07
-    filter_alpha: 0.15
+    filter_alpha_: 0.2
+    robot_ids: [2,6]
+Relative_detector_node:
+  ros__parameters:
+    field_marker_size: 0.1
+    robot_marker_size: 0.07
+    alpha_translation: 0.2
+    alpha_rotation: 0.2
+    field_ids: [20,21,22,23]
     robot_ids: [2,6]

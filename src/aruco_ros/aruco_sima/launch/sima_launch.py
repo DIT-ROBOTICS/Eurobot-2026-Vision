@@ -18,15 +18,15 @@ def generate_launch_description():
     # 3. 宣告啟動參數：透過 mode:=cal 或 mode:=robot 或 mode:=sima 切換
     mode_arg = DeclareLaunchArgument(
         'mode',
-        default_value='robot',
+        default_value='sima',
     )
 
     # 4. RealSense Launch 檔
-    realsense_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(realsense_path)
-        # 如果需要傳參數給 RealSense (例如降低解析度或 FPS)，可以在這裡加
-        # launch_arguments={'depth_module.profile': '640x480x30'}.items(),
-    )
+    # realsense_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource(realsense_path)
+    #     # 如果需要傳參數給 RealSense (例如降低解析度或 FPS)，可以在這裡加
+    #     # launch_arguments={'depth_module.profile': '640x480x30'}.items(),
+    # )
 
     # 定義你要追蹤的 SIMA ID 清單
     sima_ids = [1, 5, 7, 12, 14]
@@ -38,10 +38,7 @@ def generate_launch_description():
                 package='aruco_sima',
                 executable='Sima_detector_node',
                 name=f'sima_detector_{sid}', 
-                parameters=[
-                    config_path, # 載入 YAML 內參
-                    {'sima_id': sid} # 覆蓋或設定當前 Node 要抓的 ID
-                ],
+                parameters=[config_path, {'sima_id': sid}],
                 output='screen'
             )
         )
@@ -59,14 +56,15 @@ def generate_launch_description():
         ]
     )
 
-    # --- 模式二：Sima模式 (mode:=sima) ---
-    sima_group = GroupAction(
-        condition=LaunchConfigurationEquals('mode', 'sima'),
+    # --- 模式二：Test模式 (mode:test) ---
+    test_group = GroupAction(
+        condition=LaunchConfigurationEquals('mode', 'test'),
         actions=[
             Node(
                 package='aruco_sima',
                 executable='Aruco_detector_node',
                 name='Aruco_detector_node',
+                parameters=[config_path],
                 output='screen'
             ),
             Node(
@@ -76,7 +74,6 @@ def generate_launch_description():
                 parameters=[config_path],
                 output='screen'
             ),
-            # *sima_nodes,
             Node(
                 package='rviz2',
                 executable='rviz2',
@@ -86,9 +83,25 @@ def generate_launch_description():
         ]
     )
 
+    # --- 模式三：Sima模式 (mode:=sima) ---
+    sima_group = GroupAction(
+        condition=LaunchConfigurationEquals('mode', 'sima'),
+        actions=[
+            Node(
+                package='aruco_sima',
+                executable='Aruco_detector_node',
+                name='Aruco_detector_node',
+                parameters=[config_path],
+                output='screen'
+            ),
+            *sima_nodes,
+        ]
+    )
+
     return LaunchDescription([
         mode_arg,
-        realsense_launch,
+        # realsense_launch,
         calib_group,
+        test_group,
         sima_group
     ])
