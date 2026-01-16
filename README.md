@@ -38,3 +38,23 @@ Open RViz to visualize camera images and TF frames:
 ```bash
 ros2 run rviz2 rviz2
 ```
+## Yolo
+### Run hazelnut detection
+Open RViz too
+```bash
+ros2 launch yolo hazelnut_detect_launch.py
+```
+### Set localization mode
+modes:["bb", "obb_dep", "obb_pnp", "obb_mix"]
+```bash
+ros2 param set /yolo_node mode "obb_mix"
+```
+### Save Picture
+Save RGB pictures for yolo training datasets
+```bash
+ros2 run yolo save_aruco_training_data.py
+```
+Save Depth pictures for yolo training datasets
+```bash
+ros2 run yolo save_depth_training_data.py
+```

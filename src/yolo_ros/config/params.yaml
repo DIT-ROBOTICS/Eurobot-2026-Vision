@@ -1,0 +1,3 @@
+/hazelnut_detector_node:
+  ros__parameters:
+    mode : "obb_mix"

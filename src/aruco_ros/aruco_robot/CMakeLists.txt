@@ -11,7 +11,17 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
+set(ROS_DEPS
+  rclcpp
+  cv_bridge
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  geometry_msgs
+  sensor_msgs
+)
 
 include_directories(
   include
@@ -19,6 +29,9 @@ include_directories(
 )
 
 add_executable(robot_detector src/robot_detector.cpp)
+add_executable(Aruco_detector_node src/Aruco_detector_node.cpp)
+ament_target_dependencies(Aruco_detector_node ${ROS_DEPS})
+target_link_libraries(Aruco_detector_node ${OpenCV_LIBS})
 
 ament_target_dependencies(robot_detector
   rclcpp
@@ -36,6 +49,8 @@ target_link_libraries(robot_detector
 
 install(TARGETS
   robot_detector
+  Aruco_detector_node
   DESTINATION lib/${PROJECT_NAME})
 
+ament_export_dependencies(${ROS_DEPS})
 ament_package()
